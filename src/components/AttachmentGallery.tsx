@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, Film, LoaderCircle, Play, X } from "lucide-reac
 import { attachmentBasename, FILE_MAX_BYTES, type TranscriptFileAttachment, type TranscriptImageAttachment } from "@/lib/composer-attachments";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { windowsPathDestinations } from "../../shared/markdown-windows-paths";
 import { localFilePath } from "./ChatMarkdown";
 import {
   AttachedFileChip,
@@ -43,7 +44,7 @@ function fileIdentity(path: string): string {
 /** Real Markdown links only: prose, examples, images, and remote URLs don't
  * turn into host file cards. The server independently validates every click. */
 export function collectMessageFiles(text: string, existingPaths: readonly string[] = []): GalleryFile[] {
-  const tree: MarkdownNode = fromMarkdown(text);
+  const tree: MarkdownNode = fromMarkdown(text, { mdastExtensions: [windowsPathDestinations] });
   const definitions = new Map<string, string>();
   const links: MarkdownNode[] = [];
   const pending = [tree];

@@ -41,6 +41,12 @@ describe("message gallery", () => {
     expect(isVideoAttachment("./movie.mp4.html")).toBe(false);
   });
 
+  it("sends a Windows path with its backslash before punctuation intact", () => {
+    expect(collectMessageFiles("[report](C:\\Users\\Maus\\.openmausbot\\workspaces\\bot\\report.md)")).toEqual([
+      { path: "C:\\Users\\Maus\\.openmausbot\\workspaces\\bot\\report.md", name: "report.md", linked: true },
+    ]);
+  });
+
   it("does not decode file URLs twice or mistake filename characters for URL suffixes", () => {
     expect(collectMessageFiles("[video](file:///work/demo%23one.mp4) [percent](file:///work/r%2520.pdf) [space](file:///work/r%20.pdf)"))
       .toEqual([

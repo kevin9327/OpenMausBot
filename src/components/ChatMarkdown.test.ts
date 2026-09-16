@@ -169,6 +169,7 @@ describe("Markdown image metadata", () => {
     expect(markdownImageName("https://example.test/random.png", "Final render")).toBe("Final render");
     expect(markdownImageName("https://example.test/output/Launch%20art.webp")).toBe("Launch art.webp");
     expect(markdownImageName("")).toBe("Image");
+    expect(markdownImageName("C:\\Users\\Maus\\chart.png")).toBe("chart.png");
   });
 
   it("only offers an external action for HTTP sources", () => {
@@ -202,6 +203,8 @@ describe("message-scoped file targets", () => {
     expect(chatUrlTransform("file:///Users/milind/report.md")).toBe("file:///Users/milind/report.md");
     expect(chatUrlTransform("C:/Users/Maus/report.md")).toBe("C:/Users/Maus/report.md");
     expect(chatUrlTransform("\\\\server\\share\\report.md")).toBe("\\\\server\\share\\report.md");
+    // What rendering hands over for C:\Users\Maus\release notes.md.
+    expect(chatUrlTransform("C:%5CUsers%5CMaus%5Crelease%20notes.md")).toBe("C:\\Users\\Maus\\release%20notes.md");
     expect(chatUrlTransform("javascript:alert(1)")).toBe("");
     expect(chatUrlTransform("https://example.test/report.md")).toBe("https://example.test/report.md");
   });
@@ -236,6 +239,25 @@ describe("ChatMarkdown attachments", () => {
     expect(html).toContain('title="Save a copy"');
     expect(html).not.toContain("/Users/milind/report.md");
     expect(html).not.toContain("C:/Users/Maus/report.md");
+  });
+
+  it("routes a backslash Windows path through the scoped file handlers, every backslash intact", () => {
+    const save = vi.spyOn(AttachmentPreview, "useLocalFileSave");
+    const preview = vi.spyOn(AttachmentPreview, "MarkdownImagePreview");
+    try {
+      const html = renderToStaticMarkup(createElement(ChatMarkdown, {
+        text: "[Report](C:\\Users\\Maus\\.openmausbot\\report.md)\n\n![Chart](C:\\Users\\Maus\\.openmausbot\\chart.png)",
+        message: { threadId: "thread-1", messageId: "message-1" },
+      }));
+      expect(html).toContain('title="Save a copy"');
+      expect(html).not.toContain('href=""');
+      expect(html).not.toContain("Image unavailable");
+      expect(save.mock.calls[0]?.[0]).toBe("C:\\Users\\Maus\\.openmausbot\\report.md");
+      expect(preview.mock.calls[0]?.[0].filePath).toBe("C:\\Users\\Maus\\.openmausbot\\chart.png");
+    } finally {
+      save.mockRestore();
+      preview.mockRestore();
+    }
   });
 
   it("keeps an unscoped legacy file link inert", () => {
