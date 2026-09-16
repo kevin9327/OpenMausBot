@@ -44,3 +44,16 @@ describe("skill import budget", () => {
     expect(cancelled).toHaveBeenCalledOnce();
   });
 });
+
+describe("skill sources", () => {
+  it.each([
+    ["https://github.com/a/b/blob/main/SKILL.md", "https://raw.githubusercontent.com/a/b/main/SKILL.md"],
+    ["https://github.com/a/b/blob/main/skills/pdf/SKILL.md", "https://raw.githubusercontent.com/a/b/main/skills/pdf/SKILL.md"],
+  ])("imports a GitHub blob link to a SKILL.md: %s", async (source, raw) => {
+    const fetcher = vi.fn(async (_input: string | URL | Request) => new Response("# A skill")) as typeof fetch;
+    expect(await fetchSkillFromSource(source, fetcher)).toEqual({
+      skills: [{ source: raw, files: [{ path: "SKILL.md", content: "# A skill" }] }],
+    });
+    expect(vi.mocked(fetcher).mock.calls.map(([input]) => String(input))).toEqual([raw]);
+  });
+});
