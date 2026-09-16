@@ -56,4 +56,15 @@ describe("skill sources", () => {
     });
     expect(vi.mocked(fetcher).mock.calls.map(([input]) => String(input))).toEqual([raw]);
   });
+
+  it.each([
+    "https://github.com/a/b/blob/main/README-SKILL.md",
+    "https://github.com/a/b/blob/main/docs/notSKILL.md",
+  ])("refuses a blob link to a file that is not SKILL.md, like a raw link does: %s", async (source) => {
+    const fetcher = vi.fn(async () => new Response("# Not a skill")) as typeof fetch;
+    expect(await fetchSkillFromSource(source, fetcher)).toEqual({ error: expect.stringContaining("does not look like") });
+    expect(await fetchSkillFromSource(source.replace("github.com/a/b/blob/", "raw.githubusercontent.com/a/b/"), fetcher))
+      .toEqual({ error: expect.stringContaining("does not look like") });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
 });
