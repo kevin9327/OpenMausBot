@@ -27,6 +27,7 @@ class BotThreadRowTest {
         assertEquals("Working", task("run", activity = "running").runtimeLabel(), "a running thread is work, exactly as its row labels it")
         assertEquals("Waiting on you", task("ask", activity = "waiting-on-you").runtimeLabel())
         assertEquals("Queued", task("later", activity = "queued").runtimeLabel())
+        assertEquals("Queued", task("held").runtimeLabel(queued = true), "a client-held send labels the row Queued without wire activity")
         assertNull(task("idle", activity = "idle").runtimeLabel())
         assertNull(task("idle").runtimeLabel())
     }

@@ -352,6 +352,11 @@ export function agentBrowserIntegration(input: {
   env?: NodeJS.ProcessEnv;
   platform?: NodeJS.Platform;
   arch?: string;
+  /** CDP target of a Chrome already running elsewhere. Callers must source
+   * this only from this workspace's own config (browserEngineAttachCdpUrl),
+   * never from the ambient process environment — the curated env below
+   * otherwise never forwards AGENT_BROWSER_CDP at all (#1396). */
+  attachCdpUrl?: string;
 }): { command: string; args: string[]; env: Record<string, string> } {
   const sourceEnv = input.env ?? process.env;
   const env: Record<string, string> = {
@@ -373,6 +378,7 @@ export function agentBrowserIntegration(input: {
     })),
   };
   if (input.headless !== false) env.AGENT_BROWSER_HEADLESS = "1";
+  if (input.attachCdpUrl) env.AGENT_BROWSER_CDP = input.attachCdpUrl;
   // MCP clients may filter the parent environment. Carry the configured
   // Chrome path explicitly without forwarding unrelated secrets or flags.
   for (const name of ["PATH", "AGENT_BROWSER_EXECUTABLE_PATH"] as const) {

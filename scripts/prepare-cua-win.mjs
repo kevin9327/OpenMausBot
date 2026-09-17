@@ -20,9 +20,9 @@ const sdkPackage = JSON.parse(await readFile(join(sdkRoot, "package.json"), "utf
 const expectedVersion = String(sdkPackage.version);
 
 const release = {
-  version: "0.22.1",
-  file: "cua-driver-rs-0.22.1-windows-x86_64-binary.zip",
-  sha256: "e7d48af7461435903a4fe7e5ae20ba493998bc24a04b5d355c49fdc184b86f4e",
+  version: "0.28.2",
+  file: "cua-driver-rs-0.28.2-windows-x86_64-binary.zip",
+  sha256: "1f4bfceeab64cb7f56be7aad774c3dc2d2910d1427e4be1d79939c706e8029ba",
 };
 
 if (expectedVersion !== release.version) {

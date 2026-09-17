@@ -147,6 +147,7 @@ export const OpenAICompatDriver: ProviderDriver<OpenAICompatConfig> = {
         model,
         messages,
         stream,
+        stream_options: stream ? { include_usage: true } : undefined,
         ...(config.provider && isOpenRouterUrl(config.url)
           ? { provider: { order: [config.provider], allow_fallbacks: false } }
           : {}),

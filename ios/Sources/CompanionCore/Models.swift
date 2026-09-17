@@ -212,6 +212,10 @@ public struct Message: Codable, Hashable, Identifiable, Sendable {
     /// The message this one follows; nil at the thread root. Two messages
     /// sharing a parent are a fork.
     public var parentId: String?
+    /// Set when this line began as a queued send: the id the harness quoted
+    /// when it held the message, echoed back on the line that finally landed.
+    /// Clients match it against their held-send rows to retire them.
+    public var queueId: String?
     /// Rooms: which member said this.
     public var from: Sender?
     public var reactions: [Reaction]?
@@ -332,13 +336,36 @@ public struct BotTask: Codable, Hashable, Sendable {
     public var isWaitingOnTeammate: Bool { waitingOnTeammate == true }
 
     /// Whether the row must stay in the list regardless of closed state:
-    /// it is working, waiting on someone, or has something they have not read.
-    public var demandsAttention: Bool {
+    /// it is working, waiting on someone, has something they have not read,
+    /// or is holding a queued send. Queued is client state the harness
+    /// reports out-of-band, so it arrives as an input rather than living on
+    /// the wire-decoded task.
+    public func demandsAttention(queued: Bool = false) -> Bool {
         if isWorking || isWaitingOnTeammate || unread == true { return true }
+        if queued { return true }
         switch activity {
         case "waiting-on-you", "waiting", "queued": return true
         default: return false
         }
+    }
+}
+
+/// A message the harness is holding until the running turn settles. The
+/// phone's copy of a server-owned queue entry, identified by the harness's
+/// queueId and never by its text.
+public struct QueuedSend: Codable, Hashable, Identifiable, Sendable {
+    public var queueId: String
+    public var text: String
+    /// Why the harness held it. "capacity" is the known value; anything else
+    /// parses and is shown as a plain queued line.
+    public var reason: String?
+
+    public var id: String { queueId }
+
+    public init(queueId: String, text: String, reason: String? = nil) {
+        self.queueId = queueId
+        self.text = text
+        self.reason = reason
     }
 }
 
@@ -500,7 +527,7 @@ public struct Room: Codable, Hashable, Identifiable, Sendable {
 
 // MARK: - Responses
 
-private struct Lossy<Element: Decodable>: Decodable {
+struct Lossy<Element: Decodable>: Decodable {
     let value: Element?
 
     init(from decoder: Decoder) throws {
@@ -511,18 +538,28 @@ private struct Lossy<Element: Decodable>: Decodable {
 public struct Fleet: Decodable, Sendable {
     public var bots: [Bot]
     public var groups: [Room]
+    /// Held sends for every bot thread, the same snapshot the
+    /// bot.queued frames carry. Older computers omit it.
+    public var botQueuedMessages: [String: [QueuedSend]]?
 
-    private enum CodingKeys: String, CodingKey { case bots, groups }
+    private enum CodingKeys: String, CodingKey { case bots, groups, botQueuedMessages }
 
-    public init(bots: [Bot], groups: [Room]) {
+    public init(bots: [Bot], groups: [Room], botQueuedMessages: [String: [QueuedSend]]? = nil) {
         self.bots = bots
         self.groups = groups
+        self.botQueuedMessages = botQueuedMessages
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         bots = try container.decodeIfPresent([Lossy<Bot>].self, forKey: .bots)?.compactMap(\.value) ?? []
         groups = try container.decodeIfPresent([Lossy<Room>].self, forKey: .groups)?.compactMap(\.value) ?? []
+        // One malformed entry must not cost the whole fleet: the roster is
+        // worth more than the queue note beside it.
+        botQueuedMessages = (try? container.decodeIfPresent(
+            [String: [Lossy<QueuedSend>]].self,
+            forKey: .botQueuedMessages
+        ))??.mapValues { list in list.compactMap(\.value) }
     }
 }
 

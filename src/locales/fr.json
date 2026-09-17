@@ -1364,5 +1364,18 @@
   "remote.signInAccess.empty": "Personne pour l’instant. Ajoutez une adresse, ou @votreentreprise.com pour toute l’entreprise.",
   "remote.signInAccess.invalid": "Saisissez une adresse e-mail, ou @domaine pour tout le monde sur ce domaine.",
   "remote.signInAccess.note": "Les changements s’appliquent immédiatement. Retirer quelqu’un bloque les nouvelles connexions ; ses appareils déjà connectés le restent jusqu’à ce que vous les déconnectiez ci-dessus.",
-  "remote.signInAccess.error": "Enregistrement impossible : {error}"
+  "remote.signInAccess.error": "Enregistrement impossible : {error}",
+  "engines.icon.label": "Icône du fournisseur",
+  "engines.icon.selectAria": "Icône du fournisseur pour {name}",
+  "engines.icon.default": "Icône par défaut",
+  "engines.icon.custom": "Image personnalisée",
+  "engines.icon.saving": "Enregistrement de l’icône du fournisseur",
+  "engines.icon.reset": "Réinitialiser",
+  "engines.icon.help": "Choisissez un fournisseur ou importez une image carrée PNG, JPEG ou WebP de 128 Ko maximum. Seule cette instance du moteur sera modifiée.",
+  "engines.icon.uploadAria": "Importer une icône de fournisseur personnalisée pour {name}",
+  "engines.icon.decodeError": "OpenMausBot n’a pas pu décoder cette image.",
+  "engines.icon.formatError": "Importez une image PNG, JPEG ou WebP.",
+  "engines.icon.sizeError": "Les icônes de fournisseur ne doivent pas dépasser 128 Ko.",
+  "engines.icon.invalidError": "Importez une image PNG, JPEG ou WebP complète de 128 Ko et {dimension} × {dimension} pixels maximum.",
+  "engines.icon.dimensionError": "Les icônes de fournisseur ne doivent pas dépasser {dimension} × {dimension} pixels."
 }

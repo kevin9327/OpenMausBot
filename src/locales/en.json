@@ -732,6 +732,7 @@
   "task.closedBy": "closed by {name}",
   "task.closed": "Closed",
   "task.archive": "Archive",
+  "task.copyLink": "Copy link",
   "task.unarchive": "Unarchive",
   "task.archived": "Archived",
   "thread.gone": "That thread is no longer here.",
@@ -2218,5 +2219,18 @@
   "place.followBot": "Follow this bot's setting",
   "place.followBotDetail": "Currently {place}",
   "place.unavailable": "Not available for this bot's engine or setup",
-  "place.pinnedNote": "This conversation is pinned to {place}. Change it from the composer."
+  "place.pinnedNote": "This conversation is pinned to {place}. Change it from the composer.",
+  "engines.icon.label": "Provider icon",
+  "engines.icon.selectAria": "Provider icon for {name}",
+  "engines.icon.default": "Default icon",
+  "engines.icon.custom": "Custom image",
+  "engines.icon.saving": "Saving provider icon",
+  "engines.icon.reset": "Reset",
+  "engines.icon.help": "Choose a provider or upload a square PNG, JPEG, or WebP image up to 128 KB. This changes only this engine instance.",
+  "engines.icon.uploadAria": "Upload a custom provider icon for {name}",
+  "engines.icon.decodeError": "OpenMausBot could not decode that image.",
+  "engines.icon.formatError": "Upload a PNG, JPEG, or WebP image.",
+  "engines.icon.sizeError": "Provider icons must be 128 KB or smaller.",
+  "engines.icon.invalidError": "Upload a complete PNG, JPEG, or WebP image up to 128 KB and {dimension} × {dimension} pixels.",
+  "engines.icon.dimensionError": "Provider icons must be at most {dimension} × {dimension} pixels."
 }

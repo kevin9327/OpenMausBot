@@ -34,6 +34,7 @@ import { customMcpServers,
   stripWorkspaceCredentialEnv,
   syncCredentialEnv,
   vpsSshAlias,
+  browserEngineAttachCdpUrl,
   withInstanceCli,
   WORKSPACE_CREDENTIAL_ENV,
   type AppConfig,
@@ -393,6 +394,25 @@ describe("configuration boundaries", () => {
     expect(vpsSshAlias({ vps: { sshAlias: "-bad" } })).toBeNull();
   });
 
+  it("validates browserEngine.attachCdpUrl as a bare CDP port or an http(s)/ws(s) URL, and forwards it only when configured", () => {
+    // Unset: behaves exactly as before the field existed.
+    expect(parseStoredConfig({})).toEqual({});
+    expect(browserEngineAttachCdpUrl({})).toBeNull();
+    // Valid forms round-trip through both the stored-file and PATCH schemas.
+    for (const value of ["9333", "1", "65535", "http://127.0.0.1:9333", "https://cdp.internal:9333/", "ws://127.0.0.1:9333/devtools/browser/abc"]) {
+      expect(parseStoredConfig({ browserEngine: { attachCdpUrl: value } })).toEqual({ browserEngine: { attachCdpUrl: value } });
+      expect(parseConfigPatch({ browserEngine: { attachCdpUrl: value } })).toEqual({ browserEngine: { attachCdpUrl: value } });
+      expect(browserEngineAttachCdpUrl({ browserEngine: { attachCdpUrl: value } })).toBe(value);
+    }
+    // Invalid values are rejected with a clear, field-named error rather than silently ignored.
+    for (const value of ["0", "70000", "not-a-url", "ftp://127.0.0.1:9333", "javascript:alert(1)"]) {
+      expect(() => parseConfigPatch({ browserEngine: { attachCdpUrl: value } })).toThrow("browserEngine.attachCdpUrl");
+    }
+    // An empty string clears the setting (same convention as tts.baseUrl, vps.sshAlias).
+    expect(parseConfigPatch({ browserEngine: { attachCdpUrl: "" } })).toEqual({ browserEngine: { attachCdpUrl: "" } });
+    expect(browserEngineAttachCdpUrl({ browserEngine: { attachCdpUrl: "" } })).toBeNull();
+  });
+
   it("accepts a persisted global room turn timeout and supplies the legacy default", () => {
     expect(parseStoredConfig({ rooms: { turnTimeoutMinutes: 20 } })).toEqual({
       rooms: { turnTimeoutMinutes: 20 },
@@ -686,6 +706,27 @@ describe("Instance CLI override", () => {
     instances.computer.environment!.MY_FLAG = "changed";
     expect(cfg.instances!.computer.environment!.MY_FLAG).toBe("1");
   });
+
+  it("saving another engine's CLI does not freeze inherited API endpoint or model settings", () => {
+    const cfg: AppConfig = {
+      openaiCompat: { url: "https://first.example.test/v1", model: "first-model", provider: "first-provider" },
+      instances: {
+        claude: { driver: "claudeAgent" },
+        openaiCompat: { driver: "openai-compat", config: { tools: false } },
+        inherited: { driver: "openai-compat" },
+        custom: { driver: "openai-compat", config: { url: "https://custom.example.test/v1", provider: "", key: "fixture-custom" } },
+      },
+    };
+    const updated = withInstanceCli(cfg, "claude", "/fixture/claude").config;
+    expect(updated.instances!.openaiCompat.config).toEqual({ tools: false });
+    expect(updated.instances!.inherited.config).toBeUndefined();
+    expect(updated.instances!.custom.config).toEqual(cfg.instances!.custom.config);
+    updated.openaiCompat = { url: "https://second.example.test/v1", model: "second-model", provider: "second-provider" };
+    expect(instanceConfigs(updated).openaiCompat.config).toEqual({ tools: false, ...updated.openaiCompat });
+    const persisted = persistableInstanceConfigs(cfg);
+    (persisted.custom.config as Record<string, unknown>).url = "https://changed.example.test/v1";
+    expect(cfg.instances!.custom.config).toMatchObject({ url: "https://custom.example.test/v1" });
+  });
 });
 
 describe("OpenCode Go configuration", () => {
@@ -955,6 +996,58 @@ describe("credential env preference", () => {
 
     saveConfig({ instances: {} }, { replaceInstances: true });
     expect(JSON.parse(readFileSync(path, "utf8")).instances).toEqual({});
+  });
+
+  it.each(["https://next.example.test/v1", ""])("an explicit workspace URL save (%s) repairs the shared default connection", (url) => {
+    const path = join(DATA_DIR, "config.json");
+    const instances = {
+      openaiCompat: { driver: "openai-compat", config: { url: "https://old.example.test/v1", tools: false, model: "selected", provider: "" } },
+      custom: { driver: "openai-compat", config: { url: "https://custom.example.test/v1", key: "fixture-custom" } },
+      customShared: { driver: "openai-compat", config: { url: "https://shared.example.test/v1" } },
+    };
+    writeFileSync(path, JSON.stringify({ openaiCompat: { url, key: "fixture-shared" }, instances }));
+    // Also repairs a URL already saved by an older version; no guessing at boot.
+    saveConfig({ openaiCompat: { url } });
+    const disk = JSON.parse(readFileSync(path, "utf8"));
+    expect(disk.instances.openaiCompat.config).toEqual({ tools: false, model: "selected", provider: "" });
+    expect(disk.instances.custom).toEqual(instances.custom);
+    expect(disk.instances.customShared).toEqual(instances.customShared);
+    expect(disk.openaiCompat).toEqual({ url, key: "fixture-shared" });
+    expect(instanceConfigs(loadConfig()).openaiCompat.config).toEqual({
+      tools: false, model: "selected", provider: "", ...(url ? { url } : {}),
+    });
+  });
+
+  it.each([
+    { config: { key: "fixture-private" } },
+    { config: { apiKeyEnv: "CUSTOM_API_KEY" } },
+    { environment: { OPENAI_COMPAT_API_KEY: "fixture-private" } },
+  ])("keeps an independently credentialed default connection when the workspace URL changes: %j", (override) => {
+    const entry = { driver: "openai-compat", ...override, config: { url: "https://private.example.test/v1", ...override.config } };
+    const path = join(DATA_DIR, "config.json");
+    writeFileSync(path, JSON.stringify({ instances: { openaiCompat: entry } }));
+    saveConfig({ openaiCompat: { url: "https://workspace.example.test/v1" } });
+    expect(JSON.parse(readFileSync(path, "utf8")).instances.openaiCompat).toEqual(entry);
+  });
+
+  it("preserves explicit instance URLs on unrelated saves and in a combined configuration patch", () => {
+    const path = join(DATA_DIR, "config.json");
+    const entry = { driver: "openai-compat", config: { url: "https://explicit.example.test/v1" } };
+    writeFileSync(path, JSON.stringify({ instances: { openaiCompat: entry } }));
+    saveConfig({ openaiCompat: { key: "fixture-replacement" }, profile: { name: "Fixture" } });
+    expect(JSON.parse(readFileSync(path, "utf8")).instances.openaiCompat).toEqual(entry);
+    saveConfig({ openaiCompat: { url: "https://workspace.example.test/v1" }, instances: { openaiCompat: entry } });
+    expect(JSON.parse(readFileSync(path, "utf8")).instances.openaiCompat).toEqual(entry);
+  });
+
+  it.each(["openai-compat", "future-driver"])("limits URL repair to the default OpenAI-compatible driver (%s)", (driver) => {
+    const path = join(DATA_DIR, "config.json");
+    const entry = { driver, config: { url: "https://old.example.test/v1" }, futureSetting: { keep: true } };
+    writeFileSync(path, JSON.stringify({ instances: { openaiCompat: entry } }));
+    saveConfig({ openaiCompat: { url: "https://next.example.test/v1" } });
+    expect(JSON.parse(readFileSync(path, "utf8")).instances.openaiCompat).toEqual({
+      ...entry, config: driver === "openai-compat" ? {} : entry.config,
+    });
   });
 
   it("loads legacy browser profiles without resetting config and canonicalizes them on the next write", () => {

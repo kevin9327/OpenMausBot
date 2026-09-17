@@ -25,6 +25,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
@@ -429,7 +430,16 @@ data class Room(
 )
 
 @Serializable(with = FleetSerializer::class)
-data class Fleet(val bots: List<Bot>, val groups: List<Room>)
+data class Fleet(
+    val bots: List<Bot>,
+    val groups: List<Room>,
+    /**
+     * Held sends for every bot thread, the same snapshot the bot.queued
+     * frames carry. Older computers omit it; a missing or unreadable field
+     * reads as absent, never as an empty queue.
+     */
+    val botQueuedMessages: Map<String, List<QueuedSend>>? = null,
+)
 
 object FleetSerializer : KSerializer<Fleet> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("Fleet")
@@ -450,6 +460,15 @@ object FleetSerializer : KSerializer<Fleet> {
         return Fleet(
             bots = lossyArray("bots") { input.json.decodeFromJsonElement(Bot.serializer(), it) },
             groups = lossyArray("groups") { input.json.decodeFromJsonElement(Room.serializer(), it) },
+            // One malformed entry must not cost the whole fleet: the roster
+            // is worth more than the queue note beside it.
+            botQueuedMessages = runCatching {
+                objectValue["botQueuedMessages"]?.jsonObject?.mapValues { (_, entries) ->
+                    entries.jsonArray.mapNotNull { element ->
+                        runCatching { element.jsonObject.queuedSendOrNull() }.getOrNull()
+                    }
+                }
+            }.getOrNull(),
         )
     }
 
@@ -459,6 +478,13 @@ object FleetSerializer : KSerializer<Fleet> {
         output.encodeJsonElement(buildJsonObject {
             put("bots", JsonArray(value.bots.map { output.json.encodeToJsonElement(Bot.serializer(), it) }))
             put("groups", JsonArray(value.groups.map { output.json.encodeToJsonElement(Room.serializer(), it) }))
+            value.botQueuedMessages?.let { queues ->
+                put("botQueuedMessages", buildJsonObject {
+                    queues.forEach { (threadId, sends) ->
+                        put(threadId, JsonArray(sends.map { it.toJsonObject() }))
+                    }
+                })
+            }
         })
     }
 }

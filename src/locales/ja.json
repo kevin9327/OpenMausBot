@@ -1364,5 +1364,18 @@
   "remote.signInAccess.empty": "まだ誰もいません。アドレスを追加するか、会社全員なら @yourcompany.com を追加してください。",
   "remote.signInAccess.invalid": "メールアドレス、またはそのドメイン全員を表す @domain を入力してください。",
   "remote.signInAccess.note": "変更はすぐに反映されます。削除すると新しいサインインはできなくなります。既存のデバイスは上でサインアウトするまで残ります。",
-  "remote.signInAccess.error": "保存できませんでした: {error}"
+  "remote.signInAccess.error": "保存できませんでした: {error}",
+  "engines.icon.label": "プロバイダーアイコン",
+  "engines.icon.selectAria": "{name} のプロバイダーアイコン",
+  "engines.icon.default": "デフォルトのアイコン",
+  "engines.icon.custom": "カスタム画像",
+  "engines.icon.saving": "プロバイダーアイコンを保存中",
+  "engines.icon.reset": "リセット",
+  "engines.icon.help": "プロバイダーを選択するか、128 KB 以下の正方形の PNG、JPEG、WebP 画像をアップロードしてください。このエンジンインスタンスだけが変更されます。",
+  "engines.icon.uploadAria": "{name} のカスタムプロバイダーアイコンをアップロード",
+  "engines.icon.decodeError": "OpenMausBot はこの画像をデコードできませんでした。",
+  "engines.icon.formatError": "PNG、JPEG、WebP 画像をアップロードしてください。",
+  "engines.icon.sizeError": "プロバイダーアイコンは 128 KB 以下にしてください。",
+  "engines.icon.invalidError": "128 KB 以下、{dimension} × {dimension} ピクセル以下の完全な PNG、JPEG、WebP 画像をアップロードしてください。",
+  "engines.icon.dimensionError": "プロバイダーアイコンは {dimension} × {dimension} ピクセル以下にしてください。"
 }

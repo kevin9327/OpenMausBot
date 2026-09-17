@@ -1364,5 +1364,18 @@
   "remote.signInAccess.empty": "अभी कोई नहीं। कोई पता जोड़ें, या पूरी कंपनी के लिए @yourcompany.com।",
   "remote.signInAccess.invalid": "ईमेल पता लिखें, या उस डोमेन के सभी के लिए @domain।",
   "remote.signInAccess.note": "बदलाव तुरंत लागू होते हैं। किसी को हटाने से नए साइन-इन रुक जाते हैं; उनके मौजूदा डिवाइस तब तक साइन इन रहते हैं जब तक आप उन्हें ऊपर साइन आउट न करें।",
-  "remote.signInAccess.error": "सहेज नहीं सका: {error}"
+  "remote.signInAccess.error": "सहेज नहीं सका: {error}",
+  "engines.icon.label": "प्रदाता का आइकन",
+  "engines.icon.selectAria": "{name} के लिए प्रदाता का आइकन",
+  "engines.icon.default": "डिफ़ॉल्ट आइकन",
+  "engines.icon.custom": "कस्टम छवि",
+  "engines.icon.saving": "प्रदाता का आइकन सहेजा जा रहा है",
+  "engines.icon.reset": "रीसेट करें",
+  "engines.icon.help": "प्रदाता चुनें या 128 KB तक की चौकोर PNG, JPEG या WebP छवि अपलोड करें। इससे केवल इस इंजन इंस्टेंस में बदलाव होगा।",
+  "engines.icon.uploadAria": "{name} के लिए कस्टम प्रदाता आइकन अपलोड करें",
+  "engines.icon.decodeError": "OpenMausBot इस छवि को डिकोड नहीं कर सका।",
+  "engines.icon.formatError": "PNG, JPEG या WebP छवि अपलोड करें।",
+  "engines.icon.sizeError": "प्रदाता के आइकन का आकार 128 KB या उससे कम होना चाहिए।",
+  "engines.icon.invalidError": "128 KB और {dimension} × {dimension} पिक्सेल तक की पूर्ण PNG, JPEG या WebP छवि अपलोड करें।",
+  "engines.icon.dimensionError": "प्रदाता के आइकन का आकार अधिकतम {dimension} × {dimension} पिक्सेल होना चाहिए।"
 }

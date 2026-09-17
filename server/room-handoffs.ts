@@ -87,8 +87,14 @@ export class RoomHandoffs {
   private trackExecutionPauses(): void {
     const now = this.now();
     const executing = new Set<string>();
+    // Roots that still own unsettled nodes. A conversation stopped while a
+    // dispatched teammate executes leaves a terminal root above live work;
+    // pause accounting must survive that root until the whole tree settles.
+    const unsettled = new Set<string>();
     for (const n of this.nodes.values()) {
-      if (!terminal(n) && n.status === "running") executing.add(n.rootId);
+      if (terminal(n)) continue;
+      unsettled.add(n.rootId);
+      if (n.status === "running") executing.add(n.rootId);
     }
     for (const rootId of executing) {
       const pause = this.pauses.get(rootId) ?? { accumulatedMs: 0 };
@@ -101,7 +107,7 @@ export class RoomHandoffs {
         pause.since = undefined;
       }
       const root = this.nodes.get(rootId);
-      if (!root || terminal(root)) this.pauses.delete(rootId);
+      if (!root || !unsettled.has(rootId)) this.pauses.delete(rootId);
     }
   }
   private pausedMs(root: RoomHandoff): number {
@@ -233,6 +239,8 @@ export class RoomHandoffs {
       node.status = status; node.result = reason;
       this.controllers.get(node.id)?.abort();
     }
+    // Settlement closes the paused span now, not at the next periodic tick.
+    this.trackExecutionPauses();
     this.publish(node);
   }
   cancelRoom(groupId: string, threadId?: string) {
@@ -273,6 +281,7 @@ export class RoomHandoffs {
       }
       node.status = "cancelled"; node.result = reason;
       this.controllers.get(node.id)?.abort();
+      this.trackExecutionPauses();
       this.publish(node);
     }
     return left;
@@ -329,6 +338,10 @@ export class RoomHandoffs {
         if (!result.ok) this.cancelTree(n, n.result || "Room agent failed", "failed");
         else if (this.children(n.id).length > childCount) n.status = "waiting";
         else n.status = "completed";
+        // Close the paused span with the settlement itself: work enqueued
+        // before the next periodic tick must be admitted against the aged
+        // budget, not the still-open pause's overstated runway.
+        this.trackExecutionPauses();
         this.publish(n);
       }).catch(e => { this.cancelTree(n, String(e).slice(0, 1000), "failed"); })
         .finally(() => this.controllers.delete(n.id));

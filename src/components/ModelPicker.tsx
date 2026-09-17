@@ -11,7 +11,7 @@ import type { EffortLevel } from "../../shared/wire";
 import type { ModelVariantOption } from "../../shared/runtime-events";
 import { filterCustomModels, partitionCustomModels, suggestedModels } from "@/lib/custom-models";
 import { isCustomOnly, splitEngineRail } from "@/lib/engine-rail";
-import { ProviderMark } from "./ProviderIcons";
+import { InstanceProviderMark } from "./ProviderIcons";
 import { EngineSetup, EngineUpdateNotice, needsCli, needsSignIn } from "./EngineSetup";
 import { EngineGroupLabel } from "./EngineGroupLabel";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -285,7 +285,7 @@ export function ModelEngineRail({ instances, selectedInstance, claudeInstance, o
         title={`${label} · ${engineStatus(target)}`}
         className={cn("relative flex size-9 items-center justify-center rounded-lg", selected ? "bg-control ring-1 ring-hairline/50" : "hover:bg-control/60")}
       >
-        <ProviderMark driverKind={instance.driverKind} size={18} />
+        <InstanceProviderMark instance={target} size={18} />
         {attention && <span className="absolute bottom-0.5 right-0.5 size-1.5 rounded-full bg-warning ring-2 ring-panel" />}
       </button>
     );
@@ -532,7 +532,7 @@ export function ModelPicker({
           : selection.model
       }
     >
-      {active && <ProviderMark driverKind={active.driverKind} size={14} />}
+      {active && <InstanceProviderMark instance={active} size={14} />}
       {!contained && showActiveAccount && (
         <span data-model-account-compact className="hidden max-w-20 truncate @max-4xl/chathead:inline">{active.displayName}</span>
       )}

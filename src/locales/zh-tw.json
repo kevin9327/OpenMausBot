@@ -1915,5 +1915,18 @@
   "backup.skipDrafts": "繼續，但不還原草稿",
   "backup.skipDraftsHint": "保留此瀏覽器目前的草稿與偏好設定。這不會復原工作區的還原。",
   "backup.serverBusy": "已有工作區備份作業正在執行。",
-  "backup.checkStatus": "正在檢查備份可用性…"
+  "backup.checkStatus": "正在檢查備份可用性…",
+  "engines.icon.label": "供應商圖示",
+  "engines.icon.selectAria": "{name} 的供應商圖示",
+  "engines.icon.default": "預設圖示",
+  "engines.icon.custom": "自訂圖片",
+  "engines.icon.saving": "正在儲存供應商圖示",
+  "engines.icon.reset": "重設",
+  "engines.icon.help": "選擇供應商，或上傳不超過 128 KB 的正方形 PNG、JPEG 或 WebP 圖片。此操作只會變更此引擎執行個體。",
+  "engines.icon.uploadAria": "為 {name} 上傳自訂供應商圖示",
+  "engines.icon.decodeError": "OpenMausBot 無法解碼此圖片。",
+  "engines.icon.formatError": "請上傳 PNG、JPEG 或 WebP 圖片。",
+  "engines.icon.sizeError": "供應商圖示不得超過 128 KB。",
+  "engines.icon.invalidError": "請上傳完整的 PNG、JPEG 或 WebP 圖片，大小不超過 128 KB，尺寸不超過 {dimension} × {dimension} 像素。",
+  "engines.icon.dimensionError": "供應商圖示的尺寸不得超過 {dimension} × {dimension} 像素。"
 }

@@ -27,6 +27,10 @@ export interface AutoVmClaimSlot {
    * the gate must fire the claim on the first screen call. Eager attaches
    * register the same slot shape but never need the gate. */
   lazy?: boolean;
+  /** What the gate calls this computer when a fired claim has failed
+   * ("the Local VM", "the VPS computer"). The table serves every lazily
+   * claimed desktop, not only the Local VM it was written for. */
+  label?: string;
 }
 
 export type AutoVmClaimTable = Map<string, AutoVmClaimSlot>;

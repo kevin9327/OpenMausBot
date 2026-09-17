@@ -313,6 +313,43 @@ describe("OpenAICompatDriver", () => {
     await inst.dispose();
   });
 
+  it("U24 retest: requests stream_options.include_usage on a streamed turn, like minimax.ts does", async () => {
+    let sentBody: any = null;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/models")) return new Response(JSON.stringify({ data: [] }), { status: 200 });
+        sentBody = JSON.parse(String(init?.body));
+        return new Response(
+          'data: {"choices":[{"delta":{"content":"hi"}}]}\n' +
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n' + "data: [DONE]\n",
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      }),
+    );
+    // Local OpenAI-compatible servers (oMLX in particular) only emit a usage
+    // object in the stream when the client explicitly requests it via
+    // stream_options.include_usage -- without it every streamed turn against
+    // such a server gets no token-usage accounting at all.
+    const inst = await OpenAICompatDriver.create({
+      instanceId: "test-include-usage",
+      displayName: "Include usage",
+      enabled: true,
+      config: { url: "http://host.lima.internal:9090/v1", apiKeyEnv: "TEST_KEY" },
+      environment: { TEST_KEY: "secret" },
+    });
+    const recorder = recordEvents(inst.adapter);
+
+    await inst.adapter.sendTurn({ threadId: "thread-u24", text: "prompt" });
+    await recorder.until((e) => e.type === "turn.completed");
+
+    expect(sentBody?.stream).toBe(true);
+    expect(sentBody?.stream_options).toEqual({ include_usage: true });
+    recorder.stop();
+    await inst.dispose();
+  });
+
   it("omits provider routing on non-OpenRouter endpoints even when configured", async () => {
     let sentBody: any = null;
     vi.stubGlobal(

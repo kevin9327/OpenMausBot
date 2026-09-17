@@ -1553,7 +1553,11 @@ private fun Composer(
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .chromeCapsule()
+                    // A capsule at one line (48dp tall, 24dp corners) that keeps
+                    // those corners as the draft grows, the way Messages does.
+                    // CircleShape rounds to half the height, and a five-line
+                    // draft became a giant pill.
+                    .chromeSheet(cornerRadius = MIN_TOUCH_TARGET / 2)
                     .heightIn(min = MIN_TOUCH_TARGET),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.Bottom,

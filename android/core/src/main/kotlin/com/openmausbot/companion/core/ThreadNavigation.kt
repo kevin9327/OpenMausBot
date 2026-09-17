@@ -19,25 +19,28 @@ val BotTask.isWorking: Boolean
 val BotTask.isWaitingOnTeammate: Boolean
     get() = waitingOnTeammate == true
 
-val BotTask.demandsAttention: Boolean
+/** Running, needing the person, unread, or holding a queued send — client
+ * state passed in, because the harness reports queues out-of-band, never as
+ * task activity. */
+fun BotTask.demandsAttention(queued: Boolean = false): Boolean =
     // The activity set is the BotActivity wire contract (working,
     // waiting-on-you, waiting, idle, no-signal, dead) plus the queued wait;
     // work states arrive through isWorking.
-    get() = isWaitingOnTeammate || isWorking || busy == true || unread == true || activity in setOf(
-        "waiting-on-you", "waiting", "queued",
-    )
+    isWaitingOnTeammate || isWorking || busy == true || unread == true || queued ||
+        activity in setOf("waiting-on-you", "waiting", "queued")
 
 /**
  * Attention outranks recency within a bot: waiting-on-you needs the person
- * most, then working/busy, then queued, then unread. The thread being looked
- * at rides just above the idle tail; idle threads keep stored order. Mirrors
- * the desktop's orderedSidebarThreads so the tree, the sheet, and the pickers
- * agree on one order.
+ * most, then working/busy, then queued, then unread. A held send is client
+ * state, so it ranks in the queued tier the way the wire value does. The
+ * thread being looked at rides just above the idle tail; idle threads keep
+ * stored order. Mirrors the desktop's orderedSidebarThreads so the tree, the
+ * sheet, and the pickers agree on one order.
  */
-fun attentionRank(task: BotTask, activeThreadId: String): Int = when {
+fun attentionRank(task: BotTask, activeThreadId: String, queued: Boolean = false): Int = when {
     task.activity == "waiting-on-you" -> 0
     task.busy == true || task.activity == "working" -> 1
-    task.activity == "queued" -> 2
+    task.activity == "queued" || queued -> 2
     task.unread == true -> 3
     task.threadId == activeThreadId -> 4
     else -> 5
@@ -45,8 +48,12 @@ fun attentionRank(task: BotTask, activeThreadId: String): Int = when {
 
 /** Order, never filter: whatever the caller passes stays visible, only the
  * position changes. Sorting is stable, so equal ranks keep stored order. */
-fun orderedThreads(tasks: List<BotTask>, activeThreadId: String): List<BotTask> =
-    tasks.sortedBy { attentionRank(it, activeThreadId) }
+fun orderedThreads(
+    tasks: List<BotTask>,
+    activeThreadId: String,
+    queuedThreadIds: Set<String> = emptySet(),
+): List<BotTask> =
+    tasks.sortedBy { attentionRank(it, activeThreadId, queued = it.threadId in queuedThreadIds) }
 
 /** Routine results are ordinary threads; only their internal per-run executions are hidden. */
 val Bot.visibleTasks: List<BotTask>
@@ -57,7 +64,13 @@ val Bot.visibleTasks: List<BotTask>
  * A missing folder leaves its threads unfiled. Search includes closed threads
  * and matches folder names, and keeps relevance (stored) order.
  */
-fun Bot.threadGroups(matching: String = "", includingClosed: Boolean = false): List<BotThreadGroup> {
+fun Bot.threadGroups(
+    matching: String = "",
+    includingClosed: Boolean = false,
+    /** Threads holding a queued send. A closed thread with a held send stays
+     * in the list the way a running one does (Sidebar.tsx 865). */
+    queuedThreadIds: Set<String> = emptySet(),
+): List<BotThreadGroup> {
     val search = matching.trim()
     val threads = when {
         tasks == null -> listOf(BotTask(
@@ -68,12 +81,15 @@ fun Bot.threadGroups(matching: String = "", includingClosed: Boolean = false): L
         ))
         includingClosed || search.isNotEmpty() -> visibleTasks
         // Closed and archived threads fold away with the same override: one
-        // that starts working, waits on the person, or turns unread is back.
+        // that starts working, waits on the person, turns unread, or is
+        // holding a queued send is back.
         else -> visibleTasks.filter {
-            (!it.isClosed && !it.isArchived) || it.demandsAttention || it.threadId == threadId
+            (!it.isClosed && !it.isArchived) ||
+                it.demandsAttention(queued = queuedThreadIds.contains(it.threadId)) ||
+                it.threadId == threadId
         }
     }
-    val ordered = if (search.isEmpty()) orderedThreads(threads, threadId) else threads
+    val ordered = if (search.isEmpty()) orderedThreads(threads, threadId, queuedThreadIds) else threads
     val projectIds = mutableSetOf<String>()
     val groups = buildList {
         projects.orEmpty().forEach { project ->

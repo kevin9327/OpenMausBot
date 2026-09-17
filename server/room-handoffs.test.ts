@@ -380,6 +380,71 @@ describe("room handoff lifetime budget", () => {
         .toThrow(/budget exhausted: only 3m of the 30m tree lifetime remains/);
     }, () => nowMs);
   });
+  it("keeps the tree's pause credit for a running descendant after its conversation stops awaiting", async () => {
+    let nowMs = 0;
+    await fixture(async (engine, hooks) => {
+      const finish: Record<string, (result: { ok: boolean; text: string }) => void> = {};
+      hooks.run = node => new Promise(resolve => { finish[node.key] = resolve; });
+      const source = { botId: "clive", threadId: "clive-chat" };
+      engine.enqueue(source, "turn", undefined, { botId: "lead", threadId: "lead-task" }, "build", "build");
+      engine.sourceSettled("turn", true);
+      nowMs = 10 * 60_000; engine.tick(); await flush();
+      const running = engine.children("turn")[0];
+      expect(running.status).toBe("running");
+      engine.stopAwaitingDirect("clive-chat");
+      expect(running.status).toBe("running");
+      // 19m of wall clock with the teammate executing since 10m: the
+      // cancelled root must keep the tree's pause credit, or the running
+      // descendant's follow-up is refused with only 1m of lifetime left.
+      nowMs = 29 * 60_000;
+      engine.tick(); await flush();
+      expect(() => engine.enqueue(running, "unused", running.id, addr("C"), "followup", "more work")).not.toThrow();
+      finish.build({ ok: true, text: "done" }); await flush();
+      for (let i = 0; i < 3; i++) { engine.tick(); await flush(); }
+      expect(running.status).toBe("waiting");
+      expect(engine.children(running.id)[0]?.status).toBe("running");
+    }, () => nowMs);
+  });
+  it("closes the executing pause at settlement so a follow-up before the next tick sees the aged budget", async () => {
+    let nowMs = 0;
+    await fixture(async (engine, hooks) => {
+      let finishBuild!: (result: { ok: boolean; text: string }) => void;
+      hooks.run = node => node.key === "build"
+        ? new Promise<{ ok: boolean; text: string }>(resolve => { finishBuild = resolve; })
+        : Promise.resolve({ ok: true, text: "done" });
+      engine.enqueue(addr("A"), "turn", undefined, addr("B"), "build", "build");
+      engine.sourceSettled("turn", true);
+      nowMs = 10 * 60_000; engine.tick(); await flush();
+      // Execution ran 10m→15m and settled at 15m: the pause must close with
+      // the settlement, not at the next periodic tick. By 32m the root has
+      // aged 27m of its 30m; the still-open span used to lend the follow-up
+      // a full runway here.
+      nowMs = 15 * 60_000; finishBuild({ ok: true, text: "done" }); await flush();
+      nowMs = 32 * 60_000;
+      expect(() => engine.enqueue(addr("A"), "turn", undefined, addr("C"), "followup", "more work"))
+        .toThrow(/budget exhausted: only 3m of the 30m tree lifetime remains/);
+    }, () => nowMs);
+  });
+  it("closes the executing pause when cancelTree stops the tree, so a follow-up sees the aged budget", async () => {
+    let nowMs = 0;
+    await fixture(async (engine, hooks) => {
+      hooks.run = node => node.key === "build"
+        ? new Promise<{ ok: boolean; text: string }>(() => {})
+        : Promise.resolve({ ok: true, text: "done" });
+      engine.enqueue(addr("A"), "turn", undefined, addr("B"), "build", "build");
+      engine.sourceSettled("turn", true);
+      nowMs = 10 * 60_000; engine.tick(); await flush();
+      // Execution ran 10m→15m; cancelRoom stops the whole tree through
+      // cancelTree while build still executes, with no tick in between. The
+      // pause must close there: by 28m the settled tree has aged its full
+      // wall clock, while the still-open span the old code left would lend
+      // the follow-up 18m of pause it no longer has.
+      nowMs = 15 * 60_000; engine.cancelRoom("A");
+      nowMs = 28 * 60_000;
+      expect(() => engine.enqueue(addr("A"), "turn", undefined, addr("C"), "followup", "more work"))
+        .toThrow(/budget exhausted: only 2m of the 30m tree lifetime remains/);
+    }, () => nowMs);
+  });
   it("refuses follow-up work when the remaining lifetime cannot serve a minimum runway", () => {
     let nowMs = 0;
     return fixture(engine => {

@@ -1364,5 +1364,18 @@
   "remote.signInAccess.empty": "Noch niemand. Füge eine Adresse hinzu, oder @deinefirma.de für alle in deiner Firma.",
   "remote.signInAccess.invalid": "Gib eine E-Mail-Adresse ein oder @domain für alle dieser Domain.",
   "remote.signInAccess.note": "Änderungen gelten sofort. Wer entfernt wird, kann sich nicht neu anmelden; bestehende Geräte bleiben angemeldet, bis du sie oben abmeldest.",
-  "remote.signInAccess.error": "Konnte nicht speichern: {error}"
+  "remote.signInAccess.error": "Konnte nicht speichern: {error}",
+  "engines.icon.label": "Anbietersymbol",
+  "engines.icon.selectAria": "Anbietersymbol für {name}",
+  "engines.icon.default": "Standardsymbol",
+  "engines.icon.custom": "Eigenes Bild",
+  "engines.icon.saving": "Anbietersymbol wird gespeichert",
+  "engines.icon.reset": "Zurücksetzen",
+  "engines.icon.help": "Wähle einen Anbieter oder lade ein quadratisches PNG-, JPEG- oder WebP-Bild mit bis zu 128 KB hoch. Dies ändert nur diese Engine-Instanz.",
+  "engines.icon.uploadAria": "Eigenes Anbietersymbol für {name} hochladen",
+  "engines.icon.decodeError": "OpenMausBot konnte dieses Bild nicht dekodieren.",
+  "engines.icon.formatError": "Lade ein PNG-, JPEG- oder WebP-Bild hoch.",
+  "engines.icon.sizeError": "Anbietersymbole dürfen höchstens 128 KB groß sein.",
+  "engines.icon.invalidError": "Lade ein vollständiges PNG-, JPEG- oder WebP-Bild mit höchstens 128 KB und {dimension} × {dimension} Pixeln hoch.",
+  "engines.icon.dimensionError": "Anbietersymbole dürfen höchstens {dimension} × {dimension} Pixel groß sein."
 }

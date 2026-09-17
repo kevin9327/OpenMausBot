@@ -674,6 +674,21 @@ const TOOLS = [
     },
   },
   {
+    name: "retry_thread",
+    description:
+      "Chief of Staff only. Resume a teammate's thread whose last run failed, stalled or could not start — the one an incident report named — exactly where it stopped, keeping its conversation and files. The teammate gets a line saying you asked for the retry and why. Use it when the cause looks transient (a crash, a timeout, a busy service). Use delegate_bot with a corrected brief instead when the request itself needs to change, and tell the person instead when only they can fix the cause (a sign-in, a missing credential, an unanswered question). Never retry the same thread more than twice.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        bot_id: { type: "string", description: "The teammate's id, from the incident report or list_bots." },
+        thread_id: { type: "string", description: "The failed thread's id, from the incident report." },
+        note: { type: "string", description: "Optional: one sentence for the teammate about what to watch for this time." },
+      },
+      required: ["bot_id", "thread_id"],
+    },
+  },
+  {
     name: "memory_log",
     description:
       "Write one line to today's log file, memory/log/YYYY-MM-DD.md, stamped with the time and this conversation: what happened, not what is true. Use it for events worth a trace — a deploy went out, a person decided something, a check failed — that should not shape future sessions. Logs are never loaded into your prompt; the person can read them, and session_search finds them later. A fact that should hold in every session goes to memory_update instead.",
@@ -1520,6 +1535,18 @@ async function callTool(name: string, args: Json): Promise<{ text: string; isErr
     }
     const entry = typeof r.entry === "string" && r.entry ? ` Entry: ${r.entry}` : "";
     return { text: `Memory updated.${entry}${r.truncated ? " MEMORY.md exceeds the prompt load budget; keep it short and curated." : ""}` };
+  }
+  if (name === "retry_thread") {
+    const botId = String(args.bot_id ?? "").trim();
+    const threadId = String(args.thread_id ?? "").trim();
+    const note = typeof args.note === "string" ? args.note.trim() : "";
+    if (!botId || !threadId) return { text: "retry_thread needs bot_id and thread_id — both are in the incident report.", isError: true };
+    const r = await api("/api/internal/retry-thread", {
+      method: "POST",
+      body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, toBotId: botId, toThreadId: threadId, ...(note ? { note } : {}) }),
+    });
+    if (r.error) return { text: `Couldn't retry that thread: ${String(r.error)}`, isError: true };
+    return { text: typeof r.message === "string" ? r.message : "The thread is running again. Its result stays in that thread; you are not woken for it — check it later with session_search or list_threads if you need to." };
   }
   if (name === "memory_log") {
     if (typeof args.text !== "string" || !args.text.trim()) {

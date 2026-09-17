@@ -43,10 +43,10 @@ final class BotTaskStatusTests: XCTestCase {
         var noSignal = task(); noSignal.activity = "no-signal"
 
         for live in [wait, working, waitingOnYou, queued, unread] {
-            XCTAssertTrue(live.demandsAttention, "A live thread must stay reachable.")
+            XCTAssertTrue(live.demandsAttention(), "A live thread must stay reachable.")
         }
-        XCTAssertFalse(idle.demandsAttention)
-        XCTAssertFalse(noSignal.demandsAttention)
+        XCTAssertFalse(idle.demandsAttention())
+        XCTAssertFalse(noSignal.demandsAttention())
     }
 
     func testWaitingOnTeammateDecodesAdditively() throws {

@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, RefreshCw } from "lucide-react";
 import { EngineSetup } from "@/components/EngineSetup";
 import { engineReady } from "@/components/EngineLibrary";
-import { ProviderMark } from "@/components/ProviderIcons";
+import { InstanceProviderMark } from "@/components/ProviderIcons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { api, useStore, type InstanceInfo } from "@/state/store";
@@ -148,7 +148,7 @@ export function EnginesBeat({ onNext, setMascot, bump }: BeatProps) {
                   {ok ? (
                     <div className="flex items-center gap-3 px-3.5 py-3">
                       <span className="flex size-[18px] shrink-0 items-center justify-center">
-                        <ProviderMark driverKind={instance.driverKind} size={18} />
+                        <InstanceProviderMark instance={instance} size={18} />
                       </span>
                       <div className="flex min-w-0 flex-1 items-baseline gap-2">
                         <span className="truncate text-[13.5px] font-medium text-ink">{instance.displayName}</span>
@@ -164,7 +164,7 @@ export function EnginesBeat({ onNext, setMascot, bump }: BeatProps) {
                       className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-raised/40"
                     >
                       <span className="flex size-[18px] shrink-0 items-center justify-center">
-                        <ProviderMark driverKind={instance.driverKind} size={18} />
+                        <InstanceProviderMark instance={instance} size={18} />
                       </span>
                       <div className="flex min-w-0 flex-1 items-baseline gap-2">
                         <span className="truncate text-[13.5px] font-medium text-ink">{instance.displayName}</span>

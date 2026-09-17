@@ -15,7 +15,13 @@ export function supportsApprovalMode(driverKind: string | undefined, mode: Appro
   if (mode === "custom") return driverKind === "codex";
   if (mode === "edits") return ["claudeAgent", "grokAgent", "antigravityAgent", "qwenAgent", "geminiAgent"].includes(driverKind ?? "");
   if (mode !== "full") return true;
-  return ["codex", "claudeAgent", "antigravityAgent", "cursorAgent", "grokAgent", "opencodeGo", "qwenAgent", "geminiAgent"].includes(driverKind ?? "");
+  // The chat-completions family has no provider-side reviewer, so Full is
+  // implemented in the harness: createOpenAIChatRuntime answers its own tool
+  // gate instead of opening a card. Without this a bot on one of these
+  // engines could never stop asking — not by its own level, and not through
+  // a Chief's delegated Full access either.
+  return ["codex", "claudeAgent", "antigravityAgent", "cursorAgent", "grokAgent", "opencodeGo", "qwenAgent", "geminiAgent",
+    "openai-compat", "grok", "minimax"].includes(driverKind ?? "");
 }
 
 /** A Full/Custom grant belongs to one provider's tool semantics. Other

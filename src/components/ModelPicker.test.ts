@@ -307,6 +307,18 @@ describe("Claude provider and account selection", () => {
     }
   });
 
+  it("shows the icon of the concrete Claude account the rail selects", () => {
+    const personalIcon: InstanceInfo = { ...personal, icon: { kind: "preset", preset: "anthropic" } };
+    const workIcon: InstanceInfo = { ...work, icon: { kind: "preset", preset: "azure" } };
+    for (const claudeInstance of [workIcon, undefined]) {
+      const target = claudeInstance ?? personalIcon;
+      const rail = ModelEngineRail({ instances: [personalIcon, workIcon], claudeInstance, onSelect: () => {} });
+      const button = Children.toArray(rail.props.children).find((child) => (child as ReactElement).type === "button") as ReactElement<{ children: ReactNode }>;
+      const mark = Children.toArray(button.props.children)[0] as ReactElement<{ instance: InstanceInfo }>;
+      expect(mark.props.instance).toBe(target);
+    }
+  });
+
   it("maps named native options to concrete instances without committing a model", () => {
     const onSelect = vi.fn();
     const dropdown = ClaudeAccountSelect({ accounts: [personal, work], selectedId: work.instanceId, onSelect });

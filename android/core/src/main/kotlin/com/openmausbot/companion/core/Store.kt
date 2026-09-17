@@ -42,6 +42,11 @@ data class CompanionState(
      */
     val drainedQueueIds: List<String> = emptyList(),
 ) {
+    /** Threads holding at least one queued send. The row label, the Updates
+     * pill, and the closed-thread fold all read this, never task activity. */
+    val queuedThreadIds: Set<String>
+        get() = pendingQueued.keys
+
     fun transcript(threadId: String): List<Message> = messages[threadId].orEmpty()
 
     /** An SSE tail is partial history; only a fetched page establishes its boundary. */
@@ -155,14 +160,19 @@ data class CompanionState(
         }
         // A hydrate can be the first thing this window sees after a turn
         // settled behind its back, so rows it still holds may already have
-        // drained into these transcripts.
+        // drained into these transcripts. The fleet route carries the whole
+        // queue snapshot beside the bots, so every refresh also re-seeds it:
+        // queues another window created land here, and drained ones are
+        // forgotten.
         return copy(
             bots = fleet.bots,
             rooms = fleet.groups,
             messages = hydratedMessages,
             hasMore = hydratedHasMore,
             activeLeafIds = fleet.bots.associate { it.threadId to it.activeLeafId },
-        ).reconcileAllQueued()
+        )
+            .let { state -> fleet.botQueuedMessages?.let { state.replaceBotQueues(it) } ?: state }
+            .reconcileAllQueued()
     }
 
     fun prepend(page: ThreadPage, threadId: String): CompanionState {
@@ -244,6 +254,7 @@ data class CompanionState(
 
         is Frame.Bot -> applyBot(frame.bot)
         is Frame.BotDeleted -> deleteBot(frame.botId)
+        is Frame.BotQueued -> replaceBotQueues(frame.queues)
         is Frame.Room -> applyRoom(frame.room)
         is Frame.RoomDeleted -> deleteRoom(frame.groupId)
 
@@ -296,10 +307,49 @@ data class CompanionState(
         )
     }
 
+    /**
+     * Direct-bot queues are server-owned: a bot.queued frame or the fleet
+     * snapshot replaces them wholesale. Room queues are a separate queue the
+     * frame says nothing about, so their rows survive. Entries that vanish
+     * from the snapshot are tombstoned, so a slow POST response cannot
+     * resurrect a message another window already cancelled or drained.
+     */
+    fun replaceBotQueues(queues: Map<String, List<QueuedSend>>): CompanionState {
+        val roomThreads = buildSet {
+            rooms.forEach { room ->
+                add(room.threadId)
+                room.tasks.orEmpty().forEach { add(it.threadId) }
+            }
+        }
+        val liveIds = buildSet {
+            queues.values.forEach { list -> list.forEach { add(it.queueId) } }
+        }
+        var tombstones = drainedQueueIds
+        val next = buildMap {
+            queues.forEach { (threadId, entries) ->
+                if (entries.isNotEmpty()) put(threadId, entries)
+            }
+            pendingQueued.forEach { (threadId, entries) ->
+                if (threadId in roomThreads) {
+                    put(threadId, entries)
+                } else {
+                    entries.filter { it.queueId !in liveIds }.forEach { tombstones += it.queueId }
+                }
+            }
+        }
+        return copy(
+            pendingQueued = next,
+            drainedQueueIds = tombstones.takeLast(MAX_DRAINED_QUEUE_IDS),
+        )
+    }
+
+    /** Leave a tombstone for a queue the server already settled. */
+    private fun markDrained(queueId: String): CompanionState =
+        copy(drainedQueueIds = (drainedQueueIds + queueId).takeLast(MAX_DRAINED_QUEUE_IDS))
+
     /** Drop a row because its line landed, and leave a tombstone behind. */
     private fun retireQueued(queueId: String, threadId: String): CompanionState {
-        val tombstones = (drainedQueueIds + queueId).takeLast(MAX_DRAINED_QUEUE_IDS)
-        return forgetQueued(queueId, threadId).copy(drainedQueueIds = tombstones)
+        return forgetQueued(queueId, threadId).markDrained(queueId)
     }
 
     /**

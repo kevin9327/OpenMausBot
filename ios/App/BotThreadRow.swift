@@ -5,6 +5,10 @@ import SwiftUI
 struct BotThreadRow: View {
     let task: BotTask
     var selected = false
+    /// The thread is holding a queued send, from the client's queue state.
+    /// The harness reports this out-of-band; the activity string never says
+    /// it, so the row derives it here rather than parsing activity.
+    var queued = false
 
     private var runtime: (title: String, icon: String, color: Color)? {
         // Ordered as the desktop orders its row: the person first, then a
@@ -12,7 +16,8 @@ struct BotThreadRow: View {
         if task.activity == "waiting-on-you" { return ("Waiting on you", "hand.raised.fill", .orange) }
         if task.isWaitingOnTeammate { return ("Waiting on teammate", "clock", .secondary) }
         if task.isWorking { return ("Working", "arrow.triangle.2.circlepath", .accentColor) }
-        if task.activity == "queued" { return ("Queued", "clock", .secondary) }
+        // The queued flag is client state the harness reports out-of-band.
+        if task.activity == "queued" || queued { return ("Queued", "clock", .secondary) }
         return nil
     }
 

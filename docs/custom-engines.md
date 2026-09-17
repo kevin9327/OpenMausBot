@@ -4,6 +4,20 @@ Two zero-code ways to run OpenMausBot bots on an engine the app doesn't ship.
 Both live in `~/.openmausbot/config.json` under `"instances"`; restart the app
 after editing (instance entries are read at boot).
 
+## Provider icons
+
+In **Settings → Engines**, expand an instance and choose its **Provider icon**.
+The built-in choices include OpenAI, Anthropic, Google Gemini, Microsoft Azure,
+Amazon Bedrock (AWS), xAI, DeepSeek, Meta, Mistral AI, Qwen, Moonshot AI,
+Cohere, and OpenRouter. You can also upload a PNG, JPEG, or WebP image up to
+128 KB and 1024 × 1024 pixels. **Reset** restores the default icon.
+
+Each instance has its own icon, independent of its driver or API protocol.
+Changes made in Settings apply immediately without restarting the engine.
+For file-based configuration, add `"icon": { "kind": "preset", "preset": "azure" }`
+alongside `driver` and `displayName`. Custom uploads are stored as embedded image
+data; the app does not fetch remote icon URLs.
+
 ## Any ACP agent (a CLI you spawn)
 
 If an agent CLI speaks [ACP](https://agentclientprotocol.com) over stdio —

@@ -1371,5 +1371,18 @@
   "remote.signInAccess.empty": "Ninguém ainda. Adicione um endereço, ou @suaempresa.com para todos da empresa.",
   "remote.signInAccess.invalid": "Digite um e-mail, ou @domínio para todos daquele domínio.",
   "remote.signInAccess.note": "As mudanças valem na hora. Remover alguém impede novos logins; os dispositivos já conectados continuam até você desconectá-los acima.",
-  "remote.signInAccess.error": "Não foi possível salvar: {error}"
+  "remote.signInAccess.error": "Não foi possível salvar: {error}",
+  "engines.icon.label": "Ícone do provedor",
+  "engines.icon.selectAria": "Ícone do provedor para {name}",
+  "engines.icon.default": "Ícone padrão",
+  "engines.icon.custom": "Imagem personalizada",
+  "engines.icon.saving": "Salvando o ícone do provedor",
+  "engines.icon.reset": "Redefinir",
+  "engines.icon.help": "Escolha um provedor ou envie uma imagem quadrada PNG, JPEG ou WebP de até 128 KB. Isso altera apenas esta instância do mecanismo.",
+  "engines.icon.uploadAria": "Enviar um ícone de provedor personalizado para {name}",
+  "engines.icon.decodeError": "O OpenMausBot não conseguiu decodificar essa imagem.",
+  "engines.icon.formatError": "Envie uma imagem PNG, JPEG ou WebP.",
+  "engines.icon.sizeError": "Os ícones de provedor devem ter no máximo 128 KB.",
+  "engines.icon.invalidError": "Envie uma imagem PNG, JPEG ou WebP completa de até 128 KB e {dimension} × {dimension} pixels.",
+  "engines.icon.dimensionError": "Os ícones de provedor devem ter no máximo {dimension} × {dimension} pixels."
 }

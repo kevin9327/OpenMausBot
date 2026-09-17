@@ -1954,5 +1954,18 @@
   "backup.skipDrafts": "Продовжити без відновлення чернеток",
   "backup.skipDraftsHint": "Залишити поточні чернетки й вподобання цього браузера. Це не скасовує відновлення робочого простору.",
   "backup.serverBusy": "Операція резервного копіювання робочого простору вже триває.",
-  "backup.checkStatus": "Перевіряємо доступність резервного копіювання…"
+  "backup.checkStatus": "Перевіряємо доступність резервного копіювання…",
+  "engines.icon.label": "Значок постачальника",
+  "engines.icon.selectAria": "Значок постачальника для {name}",
+  "engines.icon.default": "Типовий значок",
+  "engines.icon.custom": "Власне зображення",
+  "engines.icon.saving": "Збереження значка постачальника",
+  "engines.icon.reset": "Скинути",
+  "engines.icon.help": "Виберіть постачальника або завантажте квадратне зображення PNG, JPEG чи WebP розміром до 128 КБ. Це змінить лише цей екземпляр рушія.",
+  "engines.icon.uploadAria": "Завантажити власний значок постачальника для {name}",
+  "engines.icon.decodeError": "OpenMausBot не вдалося декодувати це зображення.",
+  "engines.icon.formatError": "Завантажте зображення PNG, JPEG чи WebP.",
+  "engines.icon.sizeError": "Значки постачальників мають бути розміром не більше 128 КБ.",
+  "engines.icon.invalidError": "Завантажте повне зображення PNG, JPEG чи WebP розміром до 128 КБ і {dimension} × {dimension} пікселів.",
+  "engines.icon.dimensionError": "Значки постачальників мають бути не більші за {dimension} × {dimension} пікселів."
 }

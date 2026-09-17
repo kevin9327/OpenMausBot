@@ -15,8 +15,8 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
       '@trycua/cua-driver':
-        specifier: 0.22.1
-        version: 0.22.1
+        specifier: 0.28.2
+        version: 0.28.2
       ajv:
         specifier: 8.17.1
         version: 8.17.1
@@ -1809,40 +1809,40 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
 
-  '@trycua/cua-driver-darwin-arm64@0.22.1':
-    resolution: {integrity: sha512-JKFlhjXXd8Ut15BTZjZPKMNCwKEqwIRWFXY59nsFjH6suVRI9c3T65s8+eCz3f64oKRNxvHh7OKbsTIZ1vyoFA==}
+  '@trycua/cua-driver-darwin-arm64@0.28.2':
+    resolution: {integrity: sha512-Eeo62jJjxi67/XwSQKvxpJQMmJg7pjLqGa4vZTxLj3KUmjfGYjwt3wifLl82yU0AfJs6icB7V1uu6sYE+nm9mg==}
     cpu: [arm64]
     os: [darwin]
 
-  '@trycua/cua-driver-darwin-x64@0.22.1':
-    resolution: {integrity: sha512-sxYp6qnA5TCmr//vEQqUi9uhA1m6wWI4TOo5uYggIkUL3ebJIrcP4RPnqy2dYF3Y/GHwK7Si3MIk5DkTAnYezA==}
+  '@trycua/cua-driver-darwin-x64@0.28.2':
+    resolution: {integrity: sha512-n7iWl2iqIyPoDpCJ3hyK2gKZqu0RTolabRptmZKYPzRSTbRbzO3mejOa+CXHsJjVbM4+FyDJDNn5NE2CZLMdXg==}
     cpu: [x64]
     os: [darwin]
 
-  '@trycua/cua-driver-linux-arm64-gnu@0.22.1':
-    resolution: {integrity: sha512-jel+5Y4I7A0cOfNIzqTwOKb79LHfjRkDQzI+naKdt6pghY04Iez0yK+8LPAzD3XAr73yTCdShgz++h6aZuFrZQ==}
+  '@trycua/cua-driver-linux-arm64-gnu@0.28.2':
+    resolution: {integrity: sha512-ZFrYmA53ooEGyImEHo7cxYxgyXidP6Mkxc1KYiM8KoFmeHFSX3TmuKDsVV9dwZGKrhAOJBvQTvLvlb85RlccQg==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@trycua/cua-driver-linux-x64-gnu@0.22.1':
-    resolution: {integrity: sha512-H8/lKF8zSS9ZgUuEiQZSNEukRLsHUUFCWEyPdpJy6+yiBbN5eyU9jrb9CZPO1dIU0Diex6WU1kofzxaQcGJbgQ==}
+  '@trycua/cua-driver-linux-x64-gnu@0.28.2':
+    resolution: {integrity: sha512-mZp8rRyaT0/gUXnHGAC53EKA6WHKvRbliacMVsiwf/EEUOLNtz6pRNfhYyF4GLT6jHbC/Xwu8V9kpntz9Tssdg==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@trycua/cua-driver-win32-arm64-msvc@0.22.1':
-    resolution: {integrity: sha512-bD9jcQ3/FjcMCICfCYN+9fqHTqsBo/c8wHp6kbprIlmoFrxV47mbtV9SP9Edib2xNfUzJp2p59C8Rgf25lbvQw==}
+  '@trycua/cua-driver-win32-arm64-msvc@0.28.2':
+    resolution: {integrity: sha512-prShQ7VSVXMkytMGj+d43u54/9H3K0nJT5OOAqT3S78XATw7dlu1ESdEacr/J2lNcmn5mxwEy+i+9HRmEt0DJw==}
     cpu: [arm64]
     os: [win32]
 
-  '@trycua/cua-driver-win32-x64-msvc@0.22.1':
-    resolution: {integrity: sha512-sOv3pjT5lCS1Rm6ZWTHwBkVn/sSMRPoY8X3p5TQAbQxloXrWUyWFLcHC+gt9PfFAQ8Nj5nFjVT3wsTeWOsZjPA==}
+  '@trycua/cua-driver-win32-x64-msvc@0.28.2':
+    resolution: {integrity: sha512-H7pUIwbrKCqkyDBcI4ovk1ggN+MOmFtATGl0fokPkD7dp1EHGn5I9vRJEPVvqjP0BTwdlBJ8NucIy0g2eFK86Q==}
     cpu: [x64]
     os: [win32]
 
-  '@trycua/cua-driver@0.22.1':
-    resolution: {integrity: sha512-qiVmjjbRxn3D3eoUvxMwGiVHdVPKjRnSVanhYtuBq5ePdrSPPT0GTqfK9PYeka5guJMKr703gr0tfnRb2CERng==}
+  '@trycua/cua-driver@0.28.2':
+    resolution: {integrity: sha512-18DHs68WpIdKtkAMecd5mLKwJtT854gXzie24Ag0QMxveRNgzKphAje51t0oeI7ZnHetyXKDAQUr5fQyZu7S6Q==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -5576,35 +5576,35 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 7.3.6(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.16.9)(yaml@2.9.0)
 
-  '@trycua/cua-driver-darwin-arm64@0.22.1':
+  '@trycua/cua-driver-darwin-arm64@0.28.2':
     optional: true
 
-  '@trycua/cua-driver-darwin-x64@0.22.1':
+  '@trycua/cua-driver-darwin-x64@0.28.2':
     optional: true
 
-  '@trycua/cua-driver-linux-arm64-gnu@0.22.1':
+  '@trycua/cua-driver-linux-arm64-gnu@0.28.2':
     optional: true
 
-  '@trycua/cua-driver-linux-x64-gnu@0.22.1':
+  '@trycua/cua-driver-linux-x64-gnu@0.28.2':
     optional: true
 
-  '@trycua/cua-driver-win32-arm64-msvc@0.22.1':
+  '@trycua/cua-driver-win32-arm64-msvc@0.28.2':
     optional: true
 
-  '@trycua/cua-driver-win32-x64-msvc@0.22.1':
+  '@trycua/cua-driver-win32-x64-msvc@0.28.2':
     optional: true
 
-  '@trycua/cua-driver@0.22.1':
+  '@trycua/cua-driver@0.28.2':
     dependencies:
       '@ubjs/core': 0.31.0-3
       '@ubjs/node': 0.31.0-3
     optionalDependencies:
-      '@trycua/cua-driver-darwin-arm64': 0.22.1
-      '@trycua/cua-driver-darwin-x64': 0.22.1
-      '@trycua/cua-driver-linux-arm64-gnu': 0.22.1
-      '@trycua/cua-driver-linux-x64-gnu': 0.22.1
-      '@trycua/cua-driver-win32-arm64-msvc': 0.22.1
-      '@trycua/cua-driver-win32-x64-msvc': 0.22.1
+      '@trycua/cua-driver-darwin-arm64': 0.28.2
+      '@trycua/cua-driver-darwin-x64': 0.28.2
+      '@trycua/cua-driver-linux-arm64-gnu': 0.28.2
+      '@trycua/cua-driver-linux-x64-gnu': 0.28.2
+      '@trycua/cua-driver-win32-arm64-msvc': 0.28.2
+      '@trycua/cua-driver-win32-x64-msvc': 0.28.2
 
   '@types/babel__core@7.20.5':
     dependencies:

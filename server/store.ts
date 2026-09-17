@@ -22,6 +22,7 @@ import { approvalModeFor, isApprovalMode } from "../shared/approval-mode.ts";
 import type { ProfileRequestChanges } from "../shared/profile-request.ts";
 import type { TeamSetupRequest, TeamSetupResult } from "../shared/team-setup.ts";
 import type { GroupGoalRunCardData } from "../shared/group-goal-run.ts";
+import type { HandedState } from "./delta-context.ts";
 import type {
   BotActivity, GroupDefaultResponder, GroupTask as GroupTaskRecord, MausColor,
   OptionCardData, TaskClosedBy, TaskOpenedBy, TaskUsage, WireBot, WireGroup,
@@ -67,12 +68,15 @@ export interface TaskRecord extends WireTask {
    * say whether an engine's session is current, so this is what decides an
    * inline replay. Absent on tasks from before the field existed. */
   lastInstanceId?: string;
+  /** per instance: the stored messages that instance's current native
+   * session has been handed on this task (server/delta-context.ts) */
+  handedMessages?: Record<string, HandedState>;
 }
 
 /** TaskRecord fields no client may see. Everything else must be on WireTask:
  * the exactness assertion below fails to compile when either side drifts,
  * so a new server field forces a decision — wire-visible or private here. */
-export type TaskWirePrivateKeys = "resumeCursors" | "lastInstanceId";
+export type TaskWirePrivateKeys = "resumeCursors" | "lastInstanceId" | "handedMessages";
 export type TaskWireProjection = Pick<TaskRecord, Exclude<keyof TaskRecord, TaskWirePrivateKeys>>;
 type AssertExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 type AssertSameKeys<A, B> = [keyof A] extends [keyof B] ? ([keyof B] extends [keyof A] ? true : never) : never;
@@ -84,7 +88,7 @@ export const taskWireProjectionIsExact: TaskWireProjectionIsExact = true;
 /** The typed wire projection for one task. Pairs with the assertion above:
  * returning WireTask means an undeclared server field cannot ride silently. */
 export function toWireTask(task: TaskRecord): WireTask {
-  const { resumeCursors: _resumeCursors, lastInstanceId: _lastInstanceId, ...wire } = task;
+  const { resumeCursors: _resumeCursors, lastInstanceId: _lastInstanceId, handedMessages: _handedMessages, ...wire } = task;
   return wire;
 }
 
@@ -579,6 +583,7 @@ export class Store {
     }
     for (const g of this.groups) {
       g.busyBotId = null;
+      delete g.turnStartedAt;
       const normalized = normalizeGroupDefaultResponder(g.defaultResponder, g.memberIds, Boolean(g.dm));
       if (JSON.stringify(normalized) !== JSON.stringify(g.defaultResponder)) groupsMigrated = true;
       g.defaultResponder = normalized;
@@ -671,9 +676,10 @@ export class Store {
           delete task.approvalMode;
           botsMigrated = true;
         }
-        if (task.busy !== undefined || task.activity !== undefined) botsMigrated = true;
+        if (task.busy !== undefined || task.activity !== undefined || task.turnStartedAt !== undefined) botsMigrated = true;
         task.busy = false;
         task.activity = "idle";
+        task.turnStartedAt = undefined;
       }
       this.mirrorActiveTask(b, active);
       b.unread = b.tasks.some((task) => task.unread);
@@ -697,13 +703,13 @@ export class Store {
     this.rememberSections([...this.bots, ...bots].map((bot) => bot.section));
     writeFileAtomic(BOTS_FILE, JSON.stringify(bots.map(({ busy: _busy, activity: _activity, ...bot }) => ({
       ...bot,
-      tasks: bot.tasks?.map(({ busy: _taskBusy, activity: _taskActivity, ...task }) => task),
+      tasks: bot.tasks?.map(({ busy: _taskBusy, activity: _taskActivity, turnStartedAt: _taskTurnStarted, ...task }) => task),
     })), null, 2));
   }
 
   private saveGroups() {
     this.rememberSections(this.groups.map((group) => group.section));
-    writeFileAtomic(GROUPS_FILE, JSON.stringify(this.groups.map(({ busyBotId: _busyBotId, ...g }) => g), null, 2));
+    writeFileAtomic(GROUPS_FILE, JSON.stringify(this.groups.map(({ busyBotId: _busyBotId, turnStartedAt: _turnStartedAt, ...g }) => g), null, 2));
   }
 
   get sections(): string[] { return readSections(); }
@@ -823,7 +829,17 @@ export class Store {
     if (Object.prototype.hasOwnProperty.call(patch, "section")) {
       this.rememberSections([patch.section]);
     }
+    const previousBusyBotId = group.busyBotId;
     Object.assign(group, patch);
+    // The group's elapsed readout counts the busy member's turn from the
+    // claim time — the group-side twin of a task's turnStartedAt. Derived,
+    // never patched directly: stamp it on every transition into a busy
+    // speaker and clear it when the group goes idle, so each member's turn
+    // counts from its own start.
+    if (Object.prototype.hasOwnProperty.call(patch, "busyBotId")) {
+      if (patch.busyBotId && patch.busyBotId !== previousBusyBotId) group.turnStartedAt = Date.now();
+      else if (!patch.busyBotId) delete group.turnStartedAt;
+    }
     if (!group.dm && Object.prototype.hasOwnProperty.call(patch, "pinnedMessageId")) {
       const active = this.activeGroupTask(group.id);
       if (active) active.pinnedMessageId = patch.pinnedMessageId;
@@ -1211,6 +1227,13 @@ export class Store {
     t.activeLeafId = full.id;
     mdb.appendMessage(threadId, full);
     this.emit({ type: "message", threadId, message: full });
+    // The message frame alone leaves every client on the OLD branch: a
+    // client adopts a new message as its leaf only when it chains onto the
+    // current leaf, and this one is a sibling of the edited message, not a
+    // child of the reply. Say where the conversation now points, as
+    // setActiveLeaf does, or the edit shows only after the next full bot
+    // snapshot — in practice, once the reply has arrived.
+    this.emit({ type: "thread", threadId, activeLeafId: full.id });
     return full;
   }
 
@@ -1560,8 +1583,11 @@ export class Store {
     if (!bot || !task) return null;
     const busy = ACTIVITY_BUSY.has(activity);
     if ((task.activity ?? "idle") === activity && Boolean(task.busy) === busy) return bot;
+    const wasBusy = Boolean(task.busy);
     task.activity = activity;
     task.busy = busy;
+    if (busy && !wasBusy) task.turnStartedAt = Date.now();
+    else if (!busy) delete task.turnStartedAt;
     this.refreshBotActivity(bot);
     this.emit({ type: "bot", botId });
     return bot;
@@ -1621,6 +1647,16 @@ export class Store {
     const task = this.taskByThread(botId, threadId);
     if (!task || task.lastInstanceId === instanceId) return;
     task.lastInstanceId = instanceId;
+    this.saveBots();
+  }
+
+  setHandedMessages(botId: string, threadId: string, instanceId: string, state: HandedState) {
+    const task = this.taskByThread(botId, threadId);
+    if (!task || JSON.stringify(task.handedMessages?.[instanceId]) === JSON.stringify(state)) return;
+    // Other instances keep a record only while it still describes their session.
+    const live = Object.entries(task.handedMessages ?? {})
+      .filter(([id, record]) => id !== instanceId && record.session !== undefined && record.session === task.resumeCursors[id]);
+    task.handedMessages = { ...Object.fromEntries(live), [instanceId]: state };
     this.saveBots();
   }
 

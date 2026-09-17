@@ -68,7 +68,7 @@ class ThreadNavigationTest {
         val wait = task("dispatch").copy(busy = false, activity = "idle", waitingOnTeammate = true)
         assertTrue(wait.isWaitingOnTeammate)
         assertFalse(wait.isWorking)
-        assertTrue(wait.demandsAttention)
+        assertTrue(wait.demandsAttention())
 
         // The live #1228 wire paints busy+working+waitingOnTeammate together
         // during a coordination wait: the flag outranks the painted work.
@@ -78,8 +78,8 @@ class ThreadNavigationTest {
 
         // Composed with main: waiting and running ride along exactly as on
         // main and iOS, and the teammate flag is additive on top.
-        assertTrue(wait.copy(activity = "running", busy = false, waitingOnTeammate = null).demandsAttention)
-        assertTrue(wait.copy(activity = "waiting", busy = false, waitingOnTeammate = null).demandsAttention)
+        assertTrue(wait.copy(activity = "running", busy = false, waitingOnTeammate = null).demandsAttention())
+        assertTrue(wait.copy(activity = "waiting", busy = false, waitingOnTeammate = null).demandsAttention())
 
         // The wire flag decodes, and a legacy bot-level wait reaches its
         // single synthesized thread.
@@ -153,12 +153,29 @@ class ThreadNavigationTest {
     }
 
     @Test
+    fun aHeldSendFloatsARowTheWireNeverMarks() {
+        // the harness reports queues out-of-band, so the client flag floats
+        // rows the wire never marks; the wire value keeps counting, as on
+        // main (Sidebar.tsx 865)
+        val closed = task("held").copy(closedBy = closer)
+        val grouped = bot.copy(tasks = listOf(closed, task("open")))
+        assertEquals(listOf("open"), grouped.threadGroups().single().tasks.map { it.threadId })
+        assertEquals(
+            listOf("held", "open"),
+            grouped.threadGroups(queuedThreadIds = setOf("held")).single().tasks.map { it.threadId },
+        )
+        // the wire value still surfaces a row; the client flag covers the rest
+        assertTrue(task("dead").copy(activity = "queued").demandsAttention())
+        assertTrue(task("held").demandsAttention(queued = true))
+    }
+
+    @Test
     fun missingTaskMetadataHasALegacyConversationButAnExplicitEmptyListDoesNot() {
         val legacy = bot.copy(unread = true, busy = true)
         val thread = legacy.threadGroups().single().tasks.single()
         assertEquals("current", thread.threadId)
         assertEquals("Untitled thread", thread.displayTitle)
-        assertTrue(thread.demandsAttention)
+        assertTrue(thread.demandsAttention())
         assertTrue(bot.copy(tasks = emptyList()).threadGroups().isEmpty())
         assertTrue(bot.copy(tasks = listOf(task("run").copy(routineRunId = "internal"))).threadGroups().isEmpty())
     }

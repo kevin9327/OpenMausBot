@@ -2506,10 +2506,10 @@ describe("harness HTTP API", () => {
       const sibling = (await api("POST", `/api/bots/${botIds[0]}/tasks`, { title: "Waiting sibling" })).body.task;
       expect((await api("POST", `/api/bots/${botIds[0]}/messages`, { text: "wait then cancel", threadId: sibling.threadId })).status).toBe(202);
       await expect.poll(async () => JSON.stringify((await api("GET", `/api/threads/${sibling.threadId}/messages`)).body),
-        { timeout: 5_000 }).toMatch(/Waiting for computer/);
+        { timeout: 5_000 }).toMatch(/Waiting for its turn on this computer/);
       expect((await api("POST", `/api/bots/${botIds[0]}/interrupt`, { threadId: sibling.threadId })).status).toBe(200);
       await expect.poll(async () => JSON.stringify((await api("GET", `/api/threads/${sibling.threadId}/messages`)).body),
-        { timeout: 5_000 }).toMatch(/Computer wait ended/);
+        { timeout: 5_000 }).toMatch(/Stopped waiting for the computer/);
       expect(promptsOnBox()).toBe(1);
       expect((await api("POST", `/api/bots/${botIds[0]}/tasks/${firstThread}`, {})).status).toBe(200);
       for (const action of ["sleep", "provision"]) {
@@ -2522,7 +2522,7 @@ describe("harness HTTP API", () => {
       expect((await api("POST", `/api/groups/${roomId}/messages`, { text: "use the occupied shared desktop" })).status).toBe(202);
       await expect.poll(async () => JSON.stringify((await api("GET", "/api/bots?messages=30")).body.groups.find(
         (group: { id: string }) => group.id === roomId,
-      )), { timeout: 5_000 }).toMatch(/Waiting for computer/);
+      )), { timeout: 5_000 }).toMatch(/Waiting for its turn on this computer/);
       expect(promptsOnBox()).toBe(1);
       expect((await api("POST", `/api/bots/${botIds[0]}/interrupt`, {})).status).toBe(200);
       await idle(botIds[0]);
@@ -9813,6 +9813,33 @@ describe("resumable event stream", () => {
 });
 
 describe("instance CLI override API", () => {
+  it("round-trips bounded per-instance icons without changing the driver", async () => {
+    const before = JSON.parse(readFileSync(join(home, ".openmausbot", "config.json"), "utf8"));
+    const preset = await api("PATCH", "/api/instances/ghost/icon", { icon: { kind: "preset", preset: "deepseek" } });
+    expect(preset.status).toBe(200);
+    expect(preset.body.instances.find((i: any) => i.instanceId === "ghost")).toMatchObject({
+      driverKind: "not-a-real-driver", icon: { kind: "preset", preset: "deepseek" },
+    });
+    const savedPreset = JSON.parse(readFileSync(join(home, ".openmausbot", "config.json"), "utf8"));
+    expect(savedPreset.instances.ghost.icon).toEqual({ kind: "preset", preset: "deepseek" });
+    expect(savedPreset.instances.claude).toEqual(before.instances.claude);
+
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    const custom = await api("PATCH", "/api/instances/ghost/icon", { icon: { kind: "custom", dataUrl: png } });
+    expect(custom.status).toBe(200);
+    expect(custom.body.instances.find((i: any) => i.instanceId === "ghost").icon).toEqual({ kind: "custom", dataUrl: png });
+    expect((await api("GET", "/api/instances")).body.instances.find((i: any) => i.instanceId === "ghost").icon).toEqual({ kind: "custom", dataUrl: png });
+
+    expect((await api("PATCH", "/api/instances/ghost/icon", { icon: { kind: "custom", dataUrl: "https://example.test/icon.png" } })).status).toBe(400);
+    expect((await api("PATCH", "/api/instances/ghost/icon", { icon: { kind: "preset", preset: "unknown" } })).status).toBe(400);
+    expect((await api("PATCH", "/api/instances/nope/icon", { icon: null })).status).toBe(404);
+
+    const reset = await api("PATCH", "/api/instances/ghost/icon", { icon: null });
+    expect(reset.status).toBe(200);
+    expect(reset.body.instances.find((i: any) => i.instanceId === "ghost").icon).toBeUndefined();
+    expect(JSON.parse(readFileSync(join(home, ".openmausbot", "config.json"), "utf8")).instances.ghost.icon).toBeUndefined();
+  });
+
   it("round-trips a set, clear, and rejects bad input", async () => {
     // ghost is the fixture's one shadow instance (unknown driver)
     const set = await api("PATCH", "/api/instances/ghost", { cli: "/opt/ghost/wrapper sub" });
