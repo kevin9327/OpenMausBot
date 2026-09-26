@@ -25,9 +25,9 @@
 // service, and the snapshot-before-every-turn cadence follows Cline.
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, parse, resolve } from "node:path";
+import { dirname, isAbsolute, join, parse, resolve } from "node:path";
 
 import { DATA_DIR } from "./config.ts";
 
@@ -200,6 +200,26 @@ function canonicalWorktree(cwd: string): string {
   return realpathSync.native(resolve(cwd));
 }
 
+/** A folder's shadow repo and the worktree it is keyed by. History written
+ * before canonicalWorktree was keyed by plain `realpathSync`, so on Windows a
+ * folder the caller spelled in another case or as an 8.3 alias has its
+ * checkpoints under that spelling's key. When the canonical key has no history
+ * yet, that legacy repo is moved into place so list and restore keep finding
+ * it. A canonical repo that already exists is never overwritten: the legacy
+ * one is left where it is. */
+function shadowFor(botId: string, cwd: string): { shadow: string; worktree: string } {
+  const worktree = canonicalWorktree(cwd);
+  const shadow = shadowDir(botId, worktree);
+  if (!existsSync(join(shadow, ".git", "HEAD"))) {
+    const legacy = shadowDir(botId, realpathSync(resolve(cwd)));
+    if (legacy !== shadow && existsSync(join(legacy, ".git", "HEAD"))) {
+      mkdirSync(dirname(shadow), { recursive: true });
+      renameSync(legacy, shadow);
+    }
+  }
+  return { shadow, worktree };
+}
+
 function gitEnv(shadow: string, cwd: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
   // Git has several redirection/config environment variables beyond the
@@ -368,8 +388,7 @@ export async function snapshot(botId: string, cwd: string, label: string, signal
   if (!(await gitAvailable())) return null;
   if (refusalReason(cwd) !== null) return null;
   try {
-    const worktree = canonicalWorktree(cwd);
-    const shadow = shadowDir(botId, worktree);
+    const { shadow, worktree } = shadowFor(botId, cwd);
     return await serialize(shadow, async () => {
       const env = gitEnv(shadow, worktree);
       await ensureShadow(worktree, env, shadow, signal);
@@ -396,8 +415,7 @@ export async function diffWorkingTree(botId: string, cwd: string, fromHash: stri
   if (signal?.aborted || !COMMIT_HASH.test(fromHash)) return null;
   if (disabledBots.has(botId) || !(await gitAvailable()) || refusalReason(cwd) !== null) return null;
   try {
-    const worktree = realpathSync(resolve(cwd));
-    const shadow = shadowDir(botId, worktree);
+    const { shadow, worktree } = shadowFor(botId, cwd);
     const env = gitEnv(shadow, worktree);
     return await serialize(shadow, async () => {
       await ensureShadow(worktree, env, shadow, signal);
@@ -428,8 +446,7 @@ export async function listCheckpoints(botId: string, cwd: string): Promise<Check
   if (!(await gitAvailable())) return [];
   if (refusalReason(cwd) !== null) return [];
   try {
-    const worktree = canonicalWorktree(cwd);
-    const shadow = shadowDir(botId, worktree);
+    const { shadow, worktree } = shadowFor(botId, cwd);
     if (!existsSync(join(shadow, ".git", "HEAD"))) return [];
     return await serialize(shadow, async () => {
       const env = gitEnv(shadow, worktree);
@@ -466,8 +483,7 @@ export async function restore(botId: string, cwd: string, hash: string): Promise
   if (reason !== null) return { ok: false, error: reason };
   if (!COMMIT_HASH.test(hash)) return { ok: false, error: "hash must be a full 40-character checkpoint hash" };
   try {
-    const worktree = canonicalWorktree(cwd);
-    const shadow = shadowDir(botId, worktree);
+    const { shadow, worktree } = shadowFor(botId, cwd);
     if (!existsSync(join(shadow, ".git", "HEAD"))) {
       return { ok: false, error: "no checkpoints exist for this folder" };
     }
