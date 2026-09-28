@@ -266,6 +266,24 @@ describe("upgrade from the previous key", () => {
     expect(existsSync(join(CHECKPOINTS_DIR, bot, legacyKey))).toBe(false);
   });
 
+  it("adopts the legacy history past a canonical folder a stopped run left without a repository", async () => {
+    const { bot, cwd } = workspace();
+    writeFileSync(join(cwd, "a.txt"), "one");
+    withSpelling(cwd, null);
+    const first = await snapshot(bot, cwd, "turn 11111111");
+    expect(first).toMatch(/^[0-9a-f]{40}$/);
+
+    // ensureShadow writes its config files before `git init`
+    const alias = aliasOf(cwd);
+    const canonical = join(CHECKPOINTS_DIR, bot, createHash("sha256").update(alias).digest("hex").slice(0, 16));
+    mkdirSync(canonical, { recursive: true });
+    writeFileSync(join(canonical, "gitconfig"), "");
+
+    withSpelling(cwd, alias);
+    expect((await listCheckpoints(bot, cwd)).map((c) => c.hash)).toEqual([first]);
+    expect(await checkpointsEnabled(bot, cwd)).toBe(true);
+  });
+
   it("never replaces a canonical history with a legacy one", async () => {
     const { bot, cwd } = workspace();
     writeFileSync(join(cwd, "a.txt"), "canonical");

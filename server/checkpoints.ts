@@ -206,7 +206,9 @@ function canonicalWorktree(cwd: string): string {
  * checkpoints under that spelling's key. When the canonical key has no history
  * yet, that legacy repo is moved into place so list and restore keep finding
  * it. A canonical repo that already exists is never overwritten: the legacy
- * one is left where it is. */
+ * one is left where it is. A canonical folder without a repository, which a
+ * run that stopped inside ensureShadow leaves behind, would block the move,
+ * so it is set aside under another name rather than deleted. */
 function shadowFor(botId: string, cwd: string): { shadow: string; worktree: string } {
   const worktree = canonicalWorktree(cwd);
   const shadow = shadowDir(botId, worktree);
@@ -214,6 +216,7 @@ function shadowFor(botId: string, cwd: string): { shadow: string; worktree: stri
     const legacy = shadowDir(botId, realpathSync(resolve(cwd)));
     if (legacy !== shadow && existsSync(join(legacy, ".git", "HEAD"))) {
       mkdirSync(dirname(shadow), { recursive: true });
+      if (existsSync(shadow)) renameSync(shadow, `${shadow}.incomplete-${Date.now()}`);
       renameSync(legacy, shadow);
     }
   }
