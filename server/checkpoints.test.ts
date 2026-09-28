@@ -11,6 +11,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   symlinkSync,
@@ -281,6 +282,27 @@ describe("upgrade from the previous key", () => {
 
     withSpelling(cwd, alias);
     expect((await listCheckpoints(bot, cwd)).map((c) => c.hash)).toEqual([first]);
+    expect(await checkpointsEnabled(bot, cwd)).toBe(true);
+  });
+
+  // Two spellings of one folder share the canonical repo but name different
+  // legacy keys. Whichever call takes the repo first decides its history; the
+  // other must not move the canonical folder aside while it is initialized.
+  it.runIf(process.platform === "win32")("never moves a canonical repo aside while another spelling initializes it", async () => {
+    const { bot, cwd } = workspace();
+    writeFileSync(join(cwd, "a.txt"), "one");
+    withSpelling(cwd, null);
+    const first = await snapshot(bot, cwd, "turn 11111111");
+    expect(first).toMatch(/^[0-9a-f]{40}$/);
+
+    withSpelling(cwd, aliasOf(cwd));
+    const [second, listed] = await Promise.all([
+      snapshot(bot, cwd.toUpperCase(), "turn 22222222"),
+      listCheckpoints(bot, cwd),
+    ]);
+    expect(second).toMatch(/^[0-9a-f]{40}$/);
+    expect(listed).toHaveLength(1);
+    expect(readdirSync(join(CHECKPOINTS_DIR, bot)).filter((name) => name.includes(".incomplete-"))).toEqual([]);
     expect(await checkpointsEnabled(bot, cwd)).toBe(true);
   });
 
