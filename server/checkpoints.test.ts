@@ -64,6 +64,13 @@ function userGit(cwd: string, ...args: string[]): string {
   });
 }
 
+/** The shadow repo the module keeps for `cwd`: keyed by the folder's
+ * canonical spelling, which on Windows can differ from plain realpathSync's
+ * (a temp folder under an 8.3 alias such as RUNNER~1, for one). */
+function shadowOf(bot: string, cwd: string): string {
+  return join(CHECKPOINTS_DIR, bot, createHash("sha256").update(realpathSync.native(cwd)).digest("hex").slice(0, 16));
+}
+
 describe("snapshot", () => {
   it("cancels optional digest capture without disabling later checkpoints", async () => {
     const { bot, cwd } = workspace();
@@ -102,8 +109,7 @@ describe("snapshot", () => {
     const { bot, cwd } = workspace();
     writeFileSync(join(cwd, "a.txt"), "obsolete payload");
     const first = await snapshot(bot, cwd, "old turn");
-    const shadow = join(CHECKPOINTS_DIR, bot,
-      createHash("sha256").update(realpathSync(cwd)).digest("hex").slice(0, 16));
+    const shadow = shadowOf(bot, cwd);
     const oldBlob = userGit(shadow, "rev-parse", `${first}:a.txt`).trim();
     writeFileSync(join(cwd, "a.txt"), "latest payload");
     const latest = await snapshot(bot, cwd, "latest turn");
@@ -127,8 +133,7 @@ describe("snapshot", () => {
     await snapshot(bot, cwd, "before cache tag");
     writeFileSync(join(cache, "CACHEDIR.TAG"), "Signature: 8a477f597d28d172789f06886806bc55\n");
     const latest = await snapshot(bot, cwd, "tagged cache");
-    const shadow = join(CHECKPOINTS_DIR, bot,
-      createHash("sha256").update(realpathSync(cwd)).digest("hex").slice(0, 16));
+    const shadow = shadowOf(bot, cwd);
     expect(userGit(shadow, "ls-tree", "-r", "--name-only", latest!).trim()).toBe("a.txt");
     writeFileSync(join(cache, "artifact"), "new build");
     writeFileSync(join(cwd, "a.txt"), "edited source");
@@ -141,8 +146,7 @@ describe("snapshot", () => {
     const { bot, cwd } = workspace();
     writeFileSync(join(cwd, "a.txt"), "old");
     await snapshot(bot, cwd, "original");
-    const shadow = join(CHECKPOINTS_DIR, bot,
-      createHash("sha256").update(realpathSync(cwd)).digest("hex").slice(0, 16));
+    const shadow = shadowOf(bot, cwd);
     for (const text of ["middle", "latest"]) {
       writeFileSync(join(cwd, "a.txt"), text);
       userGit(shadow, "--work-tree", cwd, "add", "-A");
