@@ -285,6 +285,24 @@ describe("upgrade from the previous key", () => {
     expect(await checkpointsEnabled(bot, cwd)).toBe(true);
   });
 
+  it("adopts the legacy history past a canonical repo that has no commit yet", async () => {
+    const { bot, cwd } = workspace();
+    writeFileSync(join(cwd, "a.txt"), "one");
+    withSpelling(cwd, null);
+    const first = await snapshot(bot, cwd, "turn 11111111");
+    expect(first).toMatch(/^[0-9a-f]{40}$/);
+
+    // a run stopped after `git init`, before ensureShadow's base commit
+    const alias = aliasOf(cwd);
+    const canonical = join(CHECKPOINTS_DIR, bot, createHash("sha256").update(alias).digest("hex").slice(0, 16));
+    mkdirSync(canonical, { recursive: true });
+    execFileSync("git", ["init", "-q", "--template=", canonical]);
+
+    withSpelling(cwd, alias);
+    expect((await listCheckpoints(bot, cwd)).map((c) => c.hash)).toEqual([first]);
+    expect(await checkpointsEnabled(bot, cwd)).toBe(true);
+  });
+
   // Two spellings of one folder share the canonical repo but name different
   // legacy keys. Whichever call takes the repo first decides its history; the
   // other must not move the canonical folder aside while it is initialized.
