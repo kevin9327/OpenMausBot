@@ -150,6 +150,7 @@ describe("redactSecretsInText", () => {
       [`groq ${"gsk_"}${alpha}ABCD`, /gsk_/],
       [`meta ${"LLM|"}607358788850350|${alpha}`, /LLM\|6073/],
       [`huggingface ${"hf_"}${alpha}`, /hf_/],
+      [`pypi ${"py" + "pi-"}AgEIcHlwaS5vcmcCJDAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMAACKlszLCJhYmNkZWYiXQAABiBy${alpha}`, /pypi-|AgEIcHlwaS5vcmc/],
       [`gitlab ${"glp" + "at-"}${alpha.slice(0, 20)}`, /glpat-[a-z]/],
       [`gitlab routable ${"glp" + "at-"}${alpha.slice(0, 27)}.01.0r03gxo7a`, /glpat-[a-z]|r03gxo7a/],
       [`gitlab deploy ${"gld" + "t-"}${alpha.slice(0, 20)}`, /gldt-[a-z]/],
@@ -290,6 +291,7 @@ describe("redactSecretsInText", () => {
 describe("holdsCredential", () => {
   it("knows a provider key or a private key block, never a name, a placeholder or code that reads one", () => {
     for (const text of [
+      `TWINE_PASSWORD: ${"py" + "pi-"}AgENdGVzdC5weXBpLm9yZwIkMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAw`,
       '{"apiKey": "sk-ant-api03-0123456789abcdefABCD"}', "GITHUB_TOKEN=ghp_0123456789abcdefghij0123", "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n",
       "aws_access_key_id = AKIAABCDEFGHIJKLMNOP", `git clone https://oauth2:${"glp" + "at-"}0123456789abcdefABCD@gitlab.example.com/x.git`, `runner token ${"glr" + "tr-"}0123456789abcdefABCD`, `SLACK_APP_TOKEN: ${"xa" + "pp-"}1-A0123456789-1234567890123-abcdef0123456789`, `stripe.secret = "${"sk_" + "live_"}0123456789abcdefABCD"`,
     ]) expect(holdsCredential(text), text).toBe(true);
