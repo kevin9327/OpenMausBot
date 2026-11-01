@@ -291,13 +291,13 @@ describe("redactSecretsInText", () => {
 describe("holdsCredential", () => {
   it("knows a provider key or a private key block, never a name, a placeholder or code that reads one", () => {
     for (const text of [
-      `TWINE_PASSWORD: ${"py" + "pi-"}AgENdGVzdC5weXBpLm9yZwIkMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAw`,
+      `TWINE_PASSWORD: ${"py" + "pi-"}AgENdGVzdC5weXBpLm9yZwIkMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwAAIqWzMsImFiY2RlZiJdAAAGIA`,
       '{"apiKey": "sk-ant-api03-0123456789abcdefABCD"}', "GITHUB_TOKEN=ghp_0123456789abcdefghij0123", "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n",
       "aws_access_key_id = AKIAABCDEFGHIJKLMNOP", `git clone https://oauth2:${"glp" + "at-"}0123456789abcdefABCD@gitlab.example.com/x.git`, `runner token ${"glr" + "tr-"}0123456789abcdefABCD`, `SLACK_APP_TOKEN: ${"xa" + "pp-"}1-A0123456789-1234567890123-abcdef0123456789`, `stripe.secret = "${"sk_" + "live_"}0123456789abcdefABCD"`,
     ]) expect(holdsCredential(text), text).toBe(true);
     for (const text of [
       "token = os.environ['GITHUB_TOKEN']", "API_KEY=your-key-here", "Authorization: Bearer YOUR_TOKEN_HERE", "Keep credentials out of the repo.",
-      "-----BEGIN PUBLIC KEY-----", "GITLAB_TOKEN=glpat-your-token-here",
+      "-----BEGIN PUBLIC KEY-----", "GITLAB_TOKEN=glpat-your-token-here", `release notes mention ${"py" + "pi-"}AgE${"x".repeat(60)}`,
     ]) expect(holdsCredential(text), text).toBe(false);
   });
 });
